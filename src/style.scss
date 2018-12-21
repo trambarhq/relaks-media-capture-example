@@ -1,0 +1,80 @@
+* {
+    box-sizing: border-box;
+}
+
+.list {
+    LI {
+        margin-top: 0.5em;
+        margin-bottom: 0.5em;
+    }
+}
+
+.overlay {
+    position: fixed;
+    display: flex;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.50);
+
+    align-items: center;
+    justify-content: center;
+}
+
+.dialog-box {
+    border: 1px solid black;
+    background-color: lightgrey;
+    padding: 0.5em 0.5em 0.5em 0.5em;
+
+    .title {
+        font-weight: bold;
+        padding-bottom: 2px;
+
+        .fa-window-close {
+            font-size: 1.1em;
+            line-height: 100%;
+            float: right;
+            cursor: pointer;
+        }
+    }
+
+    VIDEO {
+        border: 1px solid black;
+    }
+
+    .placeholder {
+        font-size: 8em;
+        margin: 0.5em 1em 0.5em 1em;
+
+        .fa-ban {
+            color: darkred;
+        }
+    }
+
+    .controls {
+        border-top: 1px solid black;
+        padding-top: 0.5em;
+
+        .devices {
+            float: left;
+
+            SELECT {
+                padding: 1px 3px 1px 3px;
+            }
+        }
+
+        .duration {
+            float: left;
+            padding: 3px 2px 3px 2px;
+        }
+
+        .buttons {
+            float: right;
+
+            BUTTON {
+                margin-left: 0.2em;
+            }
+        }
+    }
+}

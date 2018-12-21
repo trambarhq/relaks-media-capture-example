@@ -1,0 +1,45 @@
+{
+  "name": "relaks-media-capture-example",
+  "version": "1.0.0",
+  "description": "An example of using Relaks to capture photo and video",
+  "scripts": {
+    "watch": "webpack --watch",
+    "build": "webpack",
+    "start": "webpack-dev-server && exit 0",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:trambarhq/relaks-media-capture-example.git"
+  },
+  "author": "Chung Leong",
+  "license": "MIT",
+  "homepage": "https://github.com/trambarhq/relaks-media-capture-example",
+  "devDependencies": {
+    "babel-core": "^6.24.1",
+    "babel-loader": "^7.0.0",
+    "babel-plugin-syntax-async-functions": "^6.13.0",
+    "babel-plugin-syntax-class-properties": "^6.13.0",
+    "babel-plugin-transform-regenerator": "^6.26.0",
+    "babel-plugin-transform-runtime": "^6.23.0",
+    "babel-preset-env": "^1.4.0",
+    "babel-preset-react": "^6.24.1",
+    "babel-preset-stage-0": "^6.24.1",
+    "css-loader": "^1.0.1",
+    "file-loader": "^2.0.0",
+    "html-webpack-plugin": "^2.28.0",
+    "node-sass": "^4.5.3",
+    "prop-types": "^15.6.2",
+    "react": "^16.6.3",
+    "react-dom": "^16.6.3",
+    "regenerator-runtime": "^0.12.0",
+    "relaks": "^1.1.7",
+    "sass-loader": "^6.0.5",
+    "style-loader": "^0.17.0",
+    "uglifyjs-webpack-plugin": "^0.4.6",
+    "webpack": "^3.1.0",
+    "webpack-bundle-analyzer": "^2.13.1",
+    "webpack-dev-server": "^2.11.2"
+  },
+  "dependencies": {}
+}
