@@ -15,10 +15,11 @@ class VideoDialogBox extends AsyncComponent {
     }
 
     async renderAsync(meanwhile) {
-        let {  onClose } = this.props;
         let props = {
             onStart: this.handleStart,
             onStop: this.handleStop,
+            onPause: this.handlePause,
+            onResume: this.handleResume,
             onClear: this.handleClear,
             onChoose: this.handleChoose,
             onAccept: this.handleAccept,
@@ -26,7 +27,7 @@ class VideoDialogBox extends AsyncComponent {
         };
         meanwhile.delay(50, 50);
         meanwhile.show(<VideoDialogBoxSync {...props} />);
-        capture.activate();
+        this.capture.activate();
         do {
             props.status = this.capture.status;
             props.devices = this.capture.devices;
@@ -54,6 +55,14 @@ class VideoDialogBox extends AsyncComponent {
         this.capture.stop();
     }
 
+    handlePause = (evt) => {
+        this.capture.pause();
+    }
+
+    handleResume = (evt) => {
+        this.capture.resume();
+    }
+
     handleClear = (evt) => {
         this.capture.clear();
     }
@@ -66,7 +75,7 @@ class VideoDialogBox extends AsyncComponent {
         let { onClose } = this.props;
         if (onClose) {
             onClose({
-                type: 'close',
+                type: 'cancel',
                 target: this,
             })
         }
@@ -90,12 +99,22 @@ class VideoDialogBox extends AsyncComponent {
 }
 
 class VideoDialogBoxSync extends PureComponent {
+    static displayName = 'VideoDialogBoxSync';
+
+    constructor(props) {
+        super(props);
+        this.state = {
+            viewportWidth: 320,
+            viewportHeight: 240,
+        };
+    }
+
     render() {
         return (
             <div className="overlay">
                 <div className="dialog-box video">
                     {this.renderTitle()}
-                    {this.renderVideo()}
+                    {this.renderCameraOutput()}
                     {this.renderControls()}
                 </div>
             </div>
@@ -112,25 +131,46 @@ class VideoDialogBoxSync extends PureComponent {
         );
     }
 
-    renderVideo() {
-        let { liveVideo, capturedVideo, capturedImage } = this.props;
-        if (capturedVideo) {
-            let videoURL = capturedVideo.url;
-            let posterURL = capturedImage.url;
-            return <video src={videoURL} poster={posterURL} controls />;
-        } else if (liveVideo) {
-            return <Video srcObject={liveVideo.stream} src={liveVideo.url} muted />;
-        } else {
-            let banStyle = {};
-            if (liveVideo === undefined) {
-                banStyle.visibility = 'hidden';
-            }
-            return (
-                <span className="fa-stack fa-lg placeholder">
-                    <i className="fa fa-camera fa-stack-1x" />
-                    <i className="fa fa-ban fa-stack-2x" style={banStyle} />
-                </span>
-            );
+    renderCameraOutput() {
+        let { status } = this.props;
+        let { viewportWidth, viewportHeight } = this.state;
+        let style = {
+            width: viewportWidth,
+            height: viewportHeight,
+        };
+        let className = `video-viewport ${status}`;
+        return (
+            <div className={className} style={style}>
+                {this.renderPicture()}
+            </div>
+        );
+    }
+
+    renderPicture() {
+        let { status, liveVideo, capturedVideo, capturedImage } = this.props;
+        switch (status) {
+            case 'acquiring':
+                return (
+                    <span className="fa-stack fa-lg">
+                        <i className="fa fa-camera fa-stack-1x" />
+                    </span>
+                );
+            case 'denied':
+                return (
+                    <span className="fa-stack fa-lg">
+                        <i className="fa fa-camera fa-stack-1x" />
+                        <i className="fa fa-ban fa-stack-2x" />
+                    </span>
+                );
+            case 'initiating':
+                return <LiveVideo muted />;
+            case 'previewing':
+            case 'recording':
+            case 'paused':
+                return <LiveVideo srcObject={liveVideo.stream} width={liveVideo.width} height={liveVideo.height} muted />;
+            case 'recorded':
+            case 'approved':
+                return <video src={capturedVideo.url} width={capturedVideo.width} height={capturedVideo.height} poster={capturedImage.url} controls />;
         }
     }
 
@@ -145,14 +185,23 @@ class VideoDialogBoxSync extends PureComponent {
     }
 
     renderDeviceMenu() {
-        let { liveVideo, duration, devices, selectedDeviceID } = this.props;
-        if (duration !== undefined || !liveVideo) {
+        let { status } = this.props;
+        let { devices, selectedDeviceID } = this.props;
+        if (status !== 'initiating' && status !== 'previewing') {
+            return null;
+        }
+        if (!devices || devices.length <= 1) {
             return null;
         }
         return (
             <div className="devices">
-                <select>
-                    <option>Front</option>
+                <select onChange={this.handleDeviceChange} value={selectedDeviceID}>
+                {
+                    devices.map((device, i) => {
+                        let label = device.label;
+                        return <option value={device.id} key={i}>{label}</option>;
+                    })
+                }
                 </select>
             </div>
         );
@@ -163,40 +212,82 @@ class VideoDialogBoxSync extends PureComponent {
         if (duration === undefined) {
             return null;
         }
-        let hh = Math.floor(duration / 3600).toString().padStart(2, '0');
-        let mm = Math.floor(duration / 60 % 60).toString().padStart(2, '0');
-        let ss = Math.floor(duration % 60).toString().padStart(2, '0');
+        let seconds = duration / 1000;
+        let hh = Math.floor(seconds / 3600).toString().padStart(2, '0');
+        let mm = Math.floor(seconds / 60 % 60).toString().padStart(2, '0');
+        let ss = Math.floor(seconds % 60).toString().padStart(2, '0');
         return <div className="duration">{`${hh}:${mm}:${ss}`}</div>
     }
 
     renderButtons() {
-        let { liveVideo, capturedVideo, duration } = this.props;
-        let { onCancel, onStart, onStop, onRetake, onAccept } = this.props;
-        if (capturedVideo) {
-            return (
-                <div className="buttons">
-                    <button onClick={onRetake}>Retake</button>
-                    <button onClick={onAccept}>Accept</button>
-                </div>
-            );
-        } else if (liveVideo && duration !== undefined) {
-            return (
-                <div className="buttons">
-                    <button onClick={onStop}>Stop</button>
-                </div>
-            );
-        } else {
-            return (
-                <div className="buttons">
-                    <button onClick={onCancel}>Cancel</button>
-                    <button onClick={onStart} disabled={!liveVideo}>Start</button>
-                </div>
-            );
+        let { status } = this.props;
+        let { onCancel, onStart, onPause, onResume, onStop, onClear, onAccept } = this.props;
+        switch (status) {
+            case 'acquiring':
+            case 'denied':
+            case 'initiating':
+            case 'previewing':
+                return (
+                    <div className="buttons">
+                        <button onClick={onCancel}>Cancel</button>
+                        <button onClick={onStart} disabled={status !== 'previewing'}>Start</button>
+                    </div>
+                );
+            case 'recording':
+                return (
+                    <div className="buttons">
+                        <button onClick={onPause}>Pause</button>
+                        <button onClick={onStop}>Stop</button>
+                    </div>
+                );
+            case 'paused':
+                return (
+                    <div className="buttons">
+                        <button onClick={onResume}>Resume</button>
+                        <button onClick={onStop}>Stop</button>
+                    </div>
+                );
+            case 'recorded':
+            case 'approved':
+                return (
+                    <div className="buttons">
+                        <button onClick={onClear}>Retake</button>
+                        <button onClick={onAccept} disable={status !== 'recorded'}>Accept</button>
+                    </div>
+                );
+        }
+    }
+
+    componentDidMount() {
+        this.componentDidUpdate({}, {});
+    }
+
+    componentDidUpdate(prevProps, prevState) {
+        let { liveVideo } = this.props;
+        if (prevProps.liveVideo !== liveVideo) {
+            if (liveVideo) {
+                this.setState({
+                    viewportWidth: liveVideo.width,
+                    viewportHeight: liveVideo.height,
+                });
+            }
+        }
+    }
+
+    handleDeviceChange = (evt) => {
+        let { onChoose } = this.props;
+        let id = evt.target.value;
+        if (onChoose) {
+            onChoose({
+                type: 'choose',
+                target: this,
+                id,
+            });
         }
     }
 }
 
-class Video extends PureComponent {
+class LiveVideo extends PureComponent {
     render() {
         let { srcObject, ...props } = this.props;
         if (srcObject instanceof Blob) {
@@ -213,10 +304,12 @@ class Video extends PureComponent {
 
     setSrcObject() {
         let { srcObject } = this.props;
-        if (!(srcObject instanceof Blob)) {
-            this.node.srcObject = srcObject;
+        if (srcObject) {
+            if (!(srcObject instanceof Blob)) {
+                this.node.srcObject = srcObject;
+            }
+            this.node.play();
         }
-        this.node.play();
     }
 
     componentDidMount() {
@@ -245,18 +338,47 @@ if (process.env.NODE_ENV !== 'production') {
     };
 
     VideoDialogBoxSync.propTypes = {
-        liveVideo: PropTypes.object,
-        capturedVideo: PropTypes.object,
-        capturedImage: PropTypes.object,
+        status: PropTypes.oneOf([
+            'acquiring',
+            'denied',
+            'initiating',
+            'previewing',
+            'recording',
+            'paused',
+            'recorded',
+            'approved',
+        ]),
+        liveVideo: PropTypes.shape({
+            stream: PropTypes.instanceOf(Object).isRequired,
+            width: PropTypes.number.isRequired,
+            height: PropTypes.number.isRequired,
+        }),
+        capturedVideo: PropTypes.shape({
+            url: PropTypes.string.isRequired,
+            blob: PropTypes.instanceOf(Blob).isRequired,
+            width: PropTypes.number.isRequired,
+            height: PropTypes.number.isRequired,
+        }),
+        capturedImage: PropTypes.shape({
+            url: PropTypes.string.isRequired,
+            blob: PropTypes.instanceOf(Blob).isRequired,
+            width: PropTypes.number.isRequired,
+            height: PropTypes.number.isRequired,
+        }),
         duration: PropTypes.number,
-        devices: PropTypes.arrayOf(PropTypes.object),
+        devices: PropTypes.arrayOf(PropTypes.shape({
+            id: PropTypes.string,
+            label: PropTypes.string,
+        })),
         selectedDeviceID: PropTypes.string,
 
         onChoose: PropTypes.func,
         onCancel: PropTypes.func,
         onStart: PropTypes.func,
         onStop: PropTypes.func,
-        onRetake: PropTypes.func,
+        onPause: PropTypes.func,
+        onResume: PropTypes.func,
+        onClear: PropTypes.func,
         onAccept: PropTypes.func,
     };
 }

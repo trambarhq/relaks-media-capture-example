@@ -20,12 +20,14 @@
 
     align-items: center;
     justify-content: center;
+    pointer-events: none;
 }
 
 .dialog-box {
     border: 1px solid black;
     background-color: lightgrey;
     padding: 0.5em 0.5em 0.5em 0.5em;
+    pointer-events: all;
 
     .title {
         font-weight: bold;
@@ -39,21 +41,41 @@
         }
     }
 
-    VIDEO {
+    .video-viewport {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
         border: 1px solid black;
-    }
+        box-sizing: content-box;
+        background-color: black;
+        transition: width 0.25s, height 0.25s;
 
-    .placeholder {
-        font-size: 8em;
-        margin: 0.5em 1em 0.5em 1em;
+        VIDEO {
+            transition: opacity 0.25s;
+            opacity: 1;
+        }
 
-        .fa-ban {
-            color: darkred;
+        .fa-stack {
+            font-size: 6em;
+
+            .fa-ban {
+                color: darkred;
+            }
+        }
+
+        &.acquiring, &.denied {
+            background-color: transparent;
+        }
+
+        &.initiating {
+            VIDEO {
+                opacity: 0;
+            }
         }
     }
 
     .controls {
-        border-top: 1px solid black;
         padding-top: 0.5em;
 
         .devices {
@@ -66,7 +88,7 @@
 
         .duration {
             float: left;
-            padding: 3px 2px 3px 2px;
+            padding: 3px 2px 0px 2px;
         }
 
         .buttons {

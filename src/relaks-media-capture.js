@@ -5,10 +5,12 @@ var defaultOptions = {
 
 function RelaksCamera(options) {
     this.options = {};
+    this.status = undefined;
     this.liveVideo = undefined;
     this.liveAudio = undefined;
     this.lastError = null;
-    this.destroyed = false;
+    this.devices = [];
+    this.selectedDeviceID = undefined;
 
     this.waitPromise = null;
     this.waitReject = null;
@@ -32,6 +34,10 @@ var prototype = RelaksCamera.prototype;
  */
 prototype.activate = function() {
     if (!this.active) {
+        if (this.capturedVideo || this.capturedAudio || this.capturedImage) {
+            // can't reactivate without calling reset() first
+            return;
+        }
         this.acquire();
         this.active = true;
         this.notifyChange();
@@ -45,10 +51,10 @@ prototype.activate = function() {
 prototype.deactivate = function() {
     if (this.active) {
         var _this = this;
-        var delay = this.options.deactivateDelay || 0;
+        var delay = this.options.deactivationDelay || 0;
         setTimeout(function() {
-            _this.release();
-            _this.revoke();
+            _this.releaseInput();
+            _this.revokeBlobs();
         }, delay);
         this.active = false;
         this.notifyChange();
@@ -60,36 +66,59 @@ prototype.deactivate = function() {
  *
  * @return {Promise}
  */
-prototype.acquire = function(deviceID) {
+prototype.acquire = function() {
     var _this = this;
     var audio = false;
     var video = false;
+    var type = '';
+    this.status = 'acquiring';
     if (this.options.audio) {
         audio = true;
+        type = 'audio';
     }
     if (this.options.video) {
-        if (deviceID) {
-            video = deviceID;
-        } else {
-            video = true;
-        }
+        video = true;
+        type = 'video';
     }
-    var constraints = { video, audio };
-    return getMediaStream(constraints).catch(function(err) {
-        _this.lastError = err;
-        return null;
-    }).then(function(stream) {
-        var input = null;
-        if (stream && !_this.destroyed) {
-            input = {
-                stream: stream
+    return getDevices(type).then(function(devices) {
+        var device = chooseDevice(devices, _this.options.preferredDevice);
+        if (device) {
+            if (video) {
+                video = device.id;
+            } else if (audio) {
+                audio = device.id;
             }
         }
-        if (video) {
-            _this.liveVideo = input;
-        } else if (audio) {
-            _this.liveAudio = input;
-        }
+        var constraints = { video, audio };
+        return getMediaStream(constraints).then(function(stream) {
+            // stop all tracks
+            _this.status = 'initiating';
+            _this.devices = devices;
+            _this.selectedDeviceID = (device) ? device.id : undefined;
+            _this.notifyChange();
+            return getMediaStreamMeta(stream).then(function(meta) {
+                var input = {
+                    stream: stream,
+                    height: meta.height,
+                    width: meta.width,
+                };
+                if (video) {
+                    _this.liveVideo = input;
+                } else if (audio) {
+                    _this.liveAudio = input;
+                }
+                _this.monitorInput();
+                _this.status = 'previewing';
+                _this.notifyChange();
+            });
+        }).catch(function(err) {
+            _this.status = 'denied';
+            _this.devices = [];
+            _this.selectedDeviceID = undefined;
+            _this.lastError = err;
+            _this.notifyChange();
+            return null;
+        });
     });
 };
 
@@ -118,18 +147,30 @@ prototype.stop = function() {
  *
  * @return {Promise}
  */
-prototype.captureImage = function(dimensions) {
-    let width = video.videoWidth;
-    let height = video.videoHeight;
-    let canvas = document.createElement('CANVAS');
+prototype.snap = function(dimensions) {
+    var width = video.videoWidth;
+    var height = video.videoHeight;
+    var canvas = document.createElement('CANVAS');
     canvas.width = width;
     canvas.height = height;
 };
 
 /**
+ * Keep an eye on the input stream
+ */
+prototype.monitorInput = function() {
+    var input = this.liveVideo || this.liveAudio;
+    var tracks = input.stream.getTracks();
+    var f = this.handleEnd.bind(this);
+    for (var i = 0; i < tracks.length; i++) {
+        tracks[i].onended = f;
+    }
+};
+
+/**
  * Release recording device
  */
-prototype.release = function() {
+prototype.releaseInput = function() {
     var input = this.liveVideo || this.liveAudio;
     if (input) {
         // stop all tracks
@@ -145,46 +186,53 @@ prototype.release = function() {
 /**
  * Revoke the blob URL of captured media and set them to undefined
  */
-prototype.revoke = function() {
+prototype.revokeBlobs = function() {
     if (this.capturedVideo) {
-        if (this.extractedMedia.indexOf(this.capturedVideo) === -1) {
-            URL.revokeObjectURL(this.capturedVideo.url);
-        }
+        URL.revokeObjectURL(this.capturedVideo.url);
         this.capturedVideo = undefined;
     }
     if (this.capturedAudio) {
-        if (this.extractedMedia.indexOf(this.capturedAudio) === -1) {
-            URL.revokeObjectURL(this.capturedAudio.url);
-        }
-        this.extractedMedia.push(this.capturedAudio);
+        URL.revokeObjectURL(this.capturedAudio.url);
+        this.capturedAudio = undefined;
     }
     if (this.capturedImage) {
-        if (this.extractedMedia.indexOf(this.capturedImage) === -1) {
-            URL.revokeObjectURL(this.capturedImage.url);
-        }
-        this.extractedMedia.push(this.capturedImage);
+        URL.revokeObjectURL(this.capturedImage.url);
+        this.capturedImage = undefined;
     }
 };
 
 /**
- * Add captured media to the list of object whose blob URL we don't revoke
+ * Add captured media to the list of object, sans blob URLs
  *
  * @return {Object}
  */
 prototype.extract = function() {
+    var media = {};
     if (this.capturedVideo) {
-        this.extractedMedia.push(this.capturedVideo);
+        media.video = {
+            blob: this.capturedVideo,
+            width: this.capturedVideo.width,
+            height: this.capturedVideo.height,
+            duration: this.capturedVideo.duration,
+        };
     }
     if (this.capturedAudio) {
-        this.extractedMedia.push(this.capturedAudio);
+        media.audio = {
+            blob: this.capturedVideo,
+            duration: this.capturedVideo.duration,
+        };
     }
     if (this.capturedImage) {
-        this.extractedMedia.push(this.capturedImage);
+        media.image = {
+            blob: this.capturedVideo,
+            width: this.capturedVideo.width,
+            height: this.capturedVideo.height,
+        };
     }
 };
 
 prototype.clear = function() {
-    this.revoke();
+    this.revokeBlobs();
     this.notifyChange();
 };
 
@@ -209,12 +257,84 @@ prototype.notifyChange = function() {
     }
 };
 
+prototype.handleEnd = function() {
+    if (this.active && this.status === 'previewing') {
+
+    }
+};
+
 function getMediaStream(constraints) {
     try {
         return navigator.mediaDevices.getUserMedia(constraints);
     } catch (err) {
         return Promise.reject(err);
     }
+}
+
+function getMediaStreamMeta(stream) {
+    return new Promise(function(resolve, reject) {
+        var video = document.createElement('VIDEO');
+        video.srcObject = stream;
+        video.muted = true;
+        video.onloadedmetadata = function(evt) {
+            var meta = {
+                width: video.videoWidth,
+                height: video.videoHeight,
+            };
+            resolve(meta);
+            video.pause();
+        };
+        video.onerror = function(evt) {
+            var err = new RelaksMediaCaptureError('Unable to obtain metadata');
+            reject(err);
+            video.pause();
+        };
+        video.play();
+    });
+}
+
+function getDevices(type) {
+    var mediaDevices = navigator.mediaDevices;
+    if (mediaDevices && mediaDevices.enumerateDevices) {
+        return new Promise(function(resolve, reject) {
+            mediaDevices.enumerateDevices().then(function(devices) {
+                var list = [];
+                for (var i = 0; i < devices.length; i++) {
+                    var device = devices[i];
+                    if (device === type) {
+                        list.push({
+                            id: device.id,
+                            label: device.label,
+                        });
+                    }
+                }
+                resolve(list);
+            }).catch(function(err) {
+                resolve([]);
+            });
+        });
+    } else {
+        return Promise.resolve([]);
+    }
+}
+
+function chooseDevice(devices, preferred) {
+    if (preferred) {
+        for (var i = 0; i < devices.length; i++) {
+            var device = devices[i];
+            if (device.id === preferred) {
+                return device;
+            }
+        }
+        var fragment = preferred.toLowerCase();
+        for (var i = 0; i < devices.length; i++) {
+            var device = devices[i];
+            if (device.name.toLowerCase().indexOf(fragment)) {
+                return device;
+            }
+        }
+    }
+    return devices[0];
 }
 
 /**
@@ -232,8 +352,8 @@ function saveCanvasContents(canvas, mimeType, quality) {
         if (typeof(canvas.toBlob) === 'function') {
             resolve.toBlob(cb, mimeType, 90);
         } else {
-            let dataURL = canvas.toDataURL(mimeType, quality);
-            let xhr = new XMLHttpRequest();
+            var dataURL = canvas.toDataURL(mimeType, quality);
+            var xhr = new XMLHttpRequest();
             xhr.responseType = 'blob';
             xhr.open('GET', url);
             xhr.onload = function(evt) {
@@ -247,10 +367,10 @@ function saveCanvasContents(canvas, mimeType, quality) {
     });
 }
 
-function RelaksCameraError(message) {
+function RelaksMediaCaptureError(message) {
     this.message = message;
 }
 
-RelaksCameraError.prototype = Object.create(Error.prototype)
+RelaksMediaCaptureError.prototype = Object.create(Error.prototype)
 
 module.exports = RelaksCamera;
