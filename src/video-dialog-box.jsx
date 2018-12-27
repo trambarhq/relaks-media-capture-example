@@ -252,7 +252,7 @@ class VideoDialogBoxSync extends PureComponent {
                 return (
                     <div className="buttons">
                         <button onClick={onClear}>Retake</button>
-                        <button onClick={onAccept} disable={status !== 'recorded'}>Accept</button>
+                        <button onClick={onAccept} disabled={status !== 'recorded'}>Accept</button>
                     </div>
                 );
         }
