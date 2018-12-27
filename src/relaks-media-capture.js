@@ -75,31 +75,24 @@ prototype.deactivate = function() {
  */
 prototype.acquire = function() {
     var _this = this;
-    var audio = false;
-    var video = false;
-    var type = '';
     if (!this.status) {
         this.status = 'acquiring';
     }
-    if (this.options.audio) {
-        audio = true;
-        type = 'audio';
-    }
-    if (this.options.video) {
-        video = true;
-        type = 'video';
-    }
-    return getDevices(type).then(function(devices) {
+    var constraints = {
+        video: this.options.video,
+        audio: this.options.audio,
+    };
+    return getDevices(constraints).then(function(devices) {
         var preferred = _this.selectedDeviceID || _this.options.preferredDevice;
         var device = chooseDevice(devices, preferred);
         if (device) {
-            if (video) {
-                video = { deviceId: device.id };
-            } else if (audio) {
-                audio = device.id;
+            var criteria = { deviceId: device.id };
+            if (constraints.video) {
+                constraints.video = criteria;
+            } else if (constraint.audio) {
+                constraints.audio = criteria;
             }
         }
-        var constraints = { video, audio };
         return getMediaStream(constraints).then(function(stream) {
             // stop all tracks
             _this.status = 'initiating';
@@ -107,17 +100,13 @@ prototype.acquire = function() {
             _this.selectedDeviceID = (device) ? device.id : undefined;
             _this.notifyChange();
             return getMediaStreamMeta(stream).then(function(meta) {
-                var input = _this.liveVideo || _this.liveAudio;
-                if (input) {
-                    _this.releaseInput();
-                }
-                if (video) {
+                if (constraints.video) {
                     _this.liveVideo = {
                         stream: stream,
                         height: meta.height,
                         width: meta.width,
                     };
-                } else if (audio) {
+                } else if (constraints.audio) {
                     _this.liveAudio = {
                         stream: stream,
                     };
@@ -130,6 +119,7 @@ prototype.acquire = function() {
             _this.lastError = err;
             _this.status = 'denied';
             _this.notifyChange();
+            console.error(err);
             return null;
         });
     });
@@ -202,12 +192,7 @@ prototype.monitorInput = function() {
 prototype.releaseInput = function() {
     var input = this.liveVideo || this.liveAudio;
     if (input) {
-        // stop all tracks
-        var tracks = input.stream.getTracks();
-        for (var i = 0; i < tracks.length; i++) {
-            tracks[i].onended = undefined;
-            tracks[i].stop();
-        }
+        stopMediaStream(input.stream);
     }
     this.liveVideo = undefined;
     this.liveAudio = undefined;
@@ -300,20 +285,18 @@ prototype.notifyChange = function() {
 };
 
 prototype.handleDeviceChange = function(evt) {
-    var _this = this;
-    var devicesBefore = this.devices;
-    var type;
-    if (this.options.audio) {
-        type = 'audio';
-    }
-    if (this.options.video) {
-        type = 'video';
-    }
     if (this.scanningDevices) {
         return;
     }
     this.scanningDevices = true;
-    getDevices(type).then(function(devices) {
+
+    var _this = this;
+    var devicesBefore = this.devices;
+    var constraints = {
+        video: this.options.video,
+        audio: this.options.audio,
+    };
+    getDevices(constraints).then(function(devices) {
         var newDevice = null;
         var useNewDevice = false;
         if (_this.status === 'initiating' || _this.status === 'previewing') {
@@ -390,6 +373,7 @@ function getMediaStreamMeta(stream) {
             if (resolve && w && h) {
                 resolve({ width: w, height: h });
                 target.pause();
+                target.srcObject = null;
                 resolve = null;
             }
         };
@@ -402,26 +386,78 @@ function getMediaStreamMeta(stream) {
     });
 }
 
-function getDevices(type) {
+/**
+ * Stop all tracks of a media stream
+ *
+ * @param  {MediaStream} stream
+ */
+function stopMediaStream(stream) {
+    // stop all tracks
+    var tracks = stream.getTracks();
+    for (var i = 0; i < tracks.length; i++) {
+        tracks[i].onended = undefined;
+        tracks[i].stop();
+    }
+}
+
+/**
+ * Get list of devices for the given constraints, asking for permission if
+ * necessary
+ *
+ * @param  {Object} constraints
+ *
+ * @return {Promise<Array<Object>>}
+ */
+function getDevices(constraints) {
+    var kind;
+    if (constraints.video) {
+        kind = 'videoinput';
+    } else if (constraints.audio) {
+        kind = 'audioinput';
+    }
+    return enumerateDevices(kind).then(function(devices) {
+        // we can't get the labels without obtaining permission first
+        var labelless = 0;
+        for (var i = 0; i < devices.length; i++) {
+            if (!devices[i].label) {
+                labelless++;
+            }
+        }
+        if (labelless > 0 && labelless === devices.length) {
+            // trigger request for permission
+            return getMediaStream(constraints).then(function(stream) {
+                stopMediaStream(stream);
+                return enumerateDevices(kind);
+            });
+        } else {
+            return devices;
+        }
+    }).then(function(devices) {
+        return devices.map(function(device) {
+            return {
+                id: device.deviceId,
+                label: device.label,
+            };
+        });
+    });
+}
+
+/**
+ * Enumerate a particular kind of devices
+ *
+ * @param  {Object} contraints
+ *
+ * @return {Promise<Array<Object>>}
+ */
+function enumerateDevices(kind) {
     var mediaDevices = navigator.mediaDevices;
     if (mediaDevices && mediaDevices.enumerateDevices) {
-        return new Promise(function(resolve, reject) {
-            mediaDevices.enumerateDevices().then(function(devices) {
-                var list = [];
-                var kind = type + 'input';
-                for (var i = 0; i < devices.length; i++) {
-                    var device = devices[i];
-                    if (device.kind === kind && device.deviceId) {
-                        list.push({
-                            id: device.deviceId,
-                            label: device.label,
-                        });
-                    }
-                }
-                resolve(list);
-            }).catch(function(err) {
-                resolve([]);
+        return mediaDevices.enumerateDevices().then(function(devices) {
+            return devices.filter(function(device) {
+                return (device.kind === kind);
             });
+        }).catch(function(err) {
+            return [];
         });
     } else {
         return Promise.resolve([]);

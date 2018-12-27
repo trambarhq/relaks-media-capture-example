@@ -58,14 +58,11 @@
 
         .fa-stack {
             font-size: 6em;
+            color: lightgray;
 
             .fa-ban {
-                color: darkred;
+                color: red;
             }
-        }
-
-        &.acquiring, &.denied {
-            background-color: transparent;
         }
 
         &.initiating {
@@ -76,10 +73,12 @@
     }
 
     .controls {
+        display: flex;
         padding-top: 0.5em;
 
         .devices {
-            float: left;
+            flex: 1 1 auto;
+            text-align: left;
 
             SELECT {
                 padding: 1px 3px 1px 3px;
@@ -87,12 +86,19 @@
         }
 
         .duration {
-            float: left;
+            flex: 1 1 auto;
+            text-align: left;
             padding: 3px 2px 0px 2px;
         }
 
+        .volume {
+            flex: 1 1 auto;
+            text-align: center;
+        }
+
         .buttons {
-            float: right;
+            flex: 1 1 auto;
+            text-align: right;
 
             BUTTON {
                 margin-left: 0.2em;
