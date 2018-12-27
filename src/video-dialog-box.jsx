@@ -10,8 +10,9 @@ class VideoDialogBox extends AsyncComponent {
         let options = {
             video: true,
             audio: true,
+            preferredDevice: 'usb',
         };
-        this.capture = new RelaksMediaCapture();
+        this.capture = new RelaksMediaCapture(options);
     }
 
     async renderAsync(meanwhile) {
@@ -68,7 +69,7 @@ class VideoDialogBox extends AsyncComponent {
     }
 
     handleChoose = (evt) => {
-        this.capture.choose(evt.deviceID);
+        this.capture.choose(evt.id);
     }
 
     handleCancel = (evt) => {
@@ -185,9 +186,8 @@ class VideoDialogBoxSync extends PureComponent {
     }
 
     renderDeviceMenu() {
-        let { status } = this.props;
-        let { devices, selectedDeviceID } = this.props;
-        if (status !== 'initiating' && status !== 'previewing') {
+        let { devices, selectedDeviceID, duration } = this.props;
+        if (duration !== undefined) {
             return null;
         }
         if (!devices || devices.length <= 1) {
@@ -198,7 +198,7 @@ class VideoDialogBoxSync extends PureComponent {
                 <select onChange={this.handleDeviceChange} value={selectedDeviceID}>
                 {
                     devices.map((device, i) => {
-                        let label = device.label;
+                        let label = device.label.replace(/\([0-9a-f]{4}:[0-9a-f]{4}\)/, '');
                         return <option value={device.id} key={i}>{label}</option>;
                     })
                 }

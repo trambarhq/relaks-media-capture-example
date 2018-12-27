@@ -1,6 +1,8 @@
 var defaultOptions = {
     video: true,
     audio: true,
+    preferredDevice: 'front',
+    chooseNewDevice: true,
 };
 
 function RelaksCamera(options) {
@@ -16,6 +18,9 @@ function RelaksCamera(options) {
     this.waitReject = null;
     this.waitResolve = null;
     this.waitTimeout = 0;
+
+    this.handleDeviceChange = this.handleDeviceChange.bind(this);
+    this.handleStreamEnd = this.handleStreamEnd.bind(this);
 
     for (var name in defaultOptions) {
         if (options && options[name] !== undefined) {
@@ -41,6 +46,7 @@ prototype.activate = function() {
         this.acquire();
         this.active = true;
         this.notifyChange();
+        this.monitorDevices();
     }
 };
 
@@ -56,6 +62,7 @@ prototype.deactivate = function() {
             _this.releaseInput();
             _this.revokeBlobs();
         }, delay);
+        this.ignoreDevices();
         this.active = false;
         this.notifyChange();
     }
@@ -71,7 +78,9 @@ prototype.acquire = function() {
     var audio = false;
     var video = false;
     var type = '';
-    this.status = 'acquiring';
+    if (!this.status) {
+        this.status = 'acquiring';
+    }
     if (this.options.audio) {
         audio = true;
         type = 'audio';
@@ -81,10 +90,11 @@ prototype.acquire = function() {
         type = 'video';
     }
     return getDevices(type).then(function(devices) {
-        var device = chooseDevice(devices, _this.options.preferredDevice);
+        var preferred = _this.selectedDeviceID || _this.options.preferredDevice;
+        var device = chooseDevice(devices, preferred);
         if (device) {
             if (video) {
-                video = device.id;
+                video = { deviceId: device.id };
             } else if (audio) {
                 audio = device.id;
             }
@@ -97,25 +107,28 @@ prototype.acquire = function() {
             _this.selectedDeviceID = (device) ? device.id : undefined;
             _this.notifyChange();
             return getMediaStreamMeta(stream).then(function(meta) {
-                var input = {
-                    stream: stream,
-                    height: meta.height,
-                    width: meta.width,
-                };
+                var input = _this.liveVideo || _this.liveAudio;
+                if (input) {
+                    _this.releaseInput();
+                }
                 if (video) {
-                    _this.liveVideo = input;
+                    _this.liveVideo = {
+                        stream: stream,
+                        height: meta.height,
+                        width: meta.width,
+                    };
                 } else if (audio) {
-                    _this.liveAudio = input;
+                    _this.liveAudio = {
+                        stream: stream,
+                    };
                 }
                 _this.monitorInput();
                 _this.status = 'previewing';
                 _this.notifyChange();
             });
         }).catch(function(err) {
-            _this.status = 'denied';
-            _this.devices = [];
-            _this.selectedDeviceID = undefined;
             _this.lastError = err;
+            _this.status = 'denied';
             _this.notifyChange();
             return null;
         });
@@ -156,14 +169,30 @@ prototype.snap = function(dimensions) {
 };
 
 /**
+ * Keep an eye out for device addition/removal
+ */
+prototype.monitorDevices = function() {
+    var mediaDevices = navigator.mediaDevices;
+    if (mediaDevices && mediaDevices.addEventListener) {
+        mediaDevices.addEventListener('devicechange', this.handleDeviceChange);
+    }
+}
+
+prototype.ignoreDevices = function() {
+    var mediaDevices = navigator.mediaDevices;
+    if (mediaDevices && mediaDevices.removeEventListener) {
+        mediaDevices.removeEventListener('devicechange', this.handleDeviceChange);
+    }
+}
+
+/**
  * Keep an eye on the input stream
  */
 prototype.monitorInput = function() {
     var input = this.liveVideo || this.liveAudio;
     var tracks = input.stream.getTracks();
-    var f = this.handleEnd.bind(this);
     for (var i = 0; i < tracks.length; i++) {
-        tracks[i].onended = f;
+        tracks[i].onended = this.handleStreamEnd;
     }
 };
 
@@ -176,6 +205,7 @@ prototype.releaseInput = function() {
         // stop all tracks
         var tracks = input.stream.getTracks();
         for (var i = 0; i < tracks.length; i++) {
+            tracks[i].onended = undefined;
             tracks[i].stop();
         }
     }
@@ -231,6 +261,18 @@ prototype.extract = function() {
     }
 };
 
+prototype.reacquire = function() {
+    this.status = 'initiating';
+    this.releaseInput();
+    this.notifyChange();
+    return this.acquire();
+};
+
+prototype.choose = function(deviceID) {
+    this.selectedDeviceID = deviceID;
+    return this.reacquire();
+};
+
 prototype.clear = function() {
     this.revokeBlobs();
     this.notifyChange();
@@ -257,9 +299,70 @@ prototype.notifyChange = function() {
     }
 };
 
-prototype.handleEnd = function() {
-    if (this.active && this.status === 'previewing') {
+prototype.handleDeviceChange = function(evt) {
+    var _this = this;
+    var devicesBefore = this.devices;
+    var type;
+    if (this.options.audio) {
+        type = 'audio';
+    }
+    if (this.options.video) {
+        type = 'video';
+    }
+    if (this.scanningDevices) {
+        return;
+    }
+    this.scanningDevices = true;
+    getDevices(type).then(function(devices) {
+        var newDevice = null;
+        var useNewDevice = false;
+        if (_this.status === 'initiating' || _this.status === 'previewing') {
+            useNewDevice = _this.options.chooseNewDevice;
+        }
+        if (useNewDevice) {
+            for (var i = 0; i < devices.length; i++) {
+                var device = devices[i];
+                var added = true;
+                for (var j = 0; j < devicesBefore.length; j++) {
+                    var deviceBefore = devicesBefore[j];
+                    if (device.id === deviceBefore.id) {
+                        added = false;
+                        break;
+                    }
+                }
+                if (added) {
+                    newDevice = devices[i];
+                    break;
+                }
+            }
+        }
+        _this.devices = devices;
+        _this.scanningDevices = false;
+        if (newDevice) {
+            // use the new device
+            _this.choose(newDevice.id);
+        } else {
+            // just note the change to the device list
+            _this.notifyChange();
+        }
+    });
+};
 
+prototype.handleStreamEnd = function(evt) {
+    var input = this.liveVideo || this.liveAudio;
+    if (input) {
+        var tracks = input.stream.getTracks();
+        for (var i = 0; i < tracks.length; i++) {
+            if (evt.target === tracks[i]) {
+                if (this.status === 'previewing') {
+                    this.reacquire();
+                } else if (this.status === 'recording' || this.status === 'paused') {
+                    this.releaseInput();
+                    this.stop();
+                }
+                break;
+            }
+        }
     }
 };
 
@@ -276,13 +379,19 @@ function getMediaStreamMeta(stream) {
         var video = document.createElement('VIDEO');
         video.srcObject = stream;
         video.muted = true;
-        video.onloadedmetadata = function(evt) {
-            var meta = {
-                width: video.videoWidth,
-                height: video.videoHeight,
-            };
-            resolve(meta);
-            video.pause();
+        // dimensions aren't always available when loadedmetadata fires
+        // listening for additional event just in case
+        video.onloadedmetadata =
+        video.onloadeddata =
+        video.oncanplay = function(evt) {
+            var target = evt.target;
+            var w = target.videoWidth;
+            var h = target.videoHeight;
+            if (resolve && w && h) {
+                resolve({ width: w, height: h });
+                target.pause();
+                resolve = null;
+            }
         };
         video.onerror = function(evt) {
             var err = new RelaksMediaCaptureError('Unable to obtain metadata');
@@ -299,11 +408,12 @@ function getDevices(type) {
         return new Promise(function(resolve, reject) {
             mediaDevices.enumerateDevices().then(function(devices) {
                 var list = [];
+                var kind = type + 'input';
                 for (var i = 0; i < devices.length; i++) {
                     var device = devices[i];
-                    if (device === type) {
+                    if (device.kind === kind && device.deviceId) {
                         list.push({
-                            id: device.id,
+                            id: device.deviceId,
                             label: device.label,
                         });
                     }
@@ -329,7 +439,8 @@ function chooseDevice(devices, preferred) {
         var fragment = preferred.toLowerCase();
         for (var i = 0; i < devices.length; i++) {
             var device = devices[i];
-            if (device.name.toLowerCase().indexOf(fragment)) {
+            var label = device.label
+            if (label && label.toLowerCase().indexOf(fragment) !== -1) {
                 return device;
             }
         }
