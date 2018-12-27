@@ -178,20 +178,25 @@ class VideoDialogBoxSync extends PureComponent {
     renderControls() {
         return (
             <div className="controls">
-                {this.renderDeviceMenu()}
-                {this.renderDuration()}
+                {this.renderDuration() || this.renderDeviceMenu()}
+                {this.renderVolume()}
                 {this.renderButtons()}
             </div>
         )
     }
 
+    renderDeviceMenuOrDuration() {
+        let duration = this.renderDuration();
+        if (duration) {
+            return duration;
+        }
+        let deviceMenu = this.render
+    }
+
     renderDeviceMenu() {
         let { devices, selectedDeviceID, duration } = this.props;
-        if (duration !== undefined) {
-            return null;
-        }
         if (!devices || devices.length <= 1) {
-            return null;
+            return <div className="devices" />;
         }
         return (
             <div className="devices">
@@ -217,6 +222,33 @@ class VideoDialogBoxSync extends PureComponent {
         let mm = Math.floor(seconds / 60 % 60).toString().padStart(2, '0');
         let ss = Math.floor(seconds % 60).toString().padStart(2, '0');
         return <div className="duration">{`${hh}:${mm}:${ss}`}</div>
+    }
+
+    renderVolume() {
+        let { status, volume } = this.props;
+        if (volume === undefined || status === 'recorded' || status === 'approved') {
+            return <div className="volume" />;
+        }
+        let iconClassName = 'fa';
+        if (volume > 40) {
+            iconClassName += ' fa-volume-up';
+        } else if (volume > 10) {
+            iconClassName += ' fa-volume-down';
+        } else {
+            iconClassName += ' fa-volume-off';
+        }
+        let barClassName = 'volume-bar';
+        if (status === 'recording') {
+            barClassName += ' recording';
+        }
+        return (
+            <div className="volume">
+                <i className={iconClassName} />
+                <div className="volume-bar-frame">
+                    <div className={barClassName} style={{ width: volume + '%' }} />
+                </div>
+            </div>
+        );
     }
 
     renderButtons() {

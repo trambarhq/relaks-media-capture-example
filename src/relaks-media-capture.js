@@ -3,6 +3,8 @@ var defaultOptions = {
     audio: true,
     preferredDevice: 'front',
     chooseNewDevice: true,
+    watchVolume: true,
+    deactivationDelay: 0,
 };
 
 function RelaksCamera(options) {
@@ -14,6 +16,10 @@ function RelaksCamera(options) {
     this.devices = [];
     this.selectedDeviceID = undefined;
 
+    this.stream = undefined;
+    this.audioProcessor = undefined;
+    this.audioContext = undefined;
+    this.audioSource = undefined;
     this.waitPromise = null;
     this.waitReject = null;
     this.waitResolve = null;
@@ -21,6 +27,7 @@ function RelaksCamera(options) {
 
     this.handleDeviceChange = this.handleDeviceChange.bind(this);
     this.handleStreamEnd = this.handleStreamEnd.bind(this);
+    this.handleAudioProcess = this.handleAudioProcess.bind(this);
 
     for (var name in defaultOptions) {
         if (options && options[name] !== undefined) {
@@ -46,7 +53,7 @@ prototype.activate = function() {
         this.acquire();
         this.active = true;
         this.notifyChange();
-        this.monitorDevices();
+        this.watchDevices();
     }
 };
 
@@ -57,12 +64,11 @@ prototype.activate = function() {
 prototype.deactivate = function() {
     if (this.active) {
         var _this = this;
-        var delay = this.options.deactivationDelay || 0;
         setTimeout(function() {
             _this.releaseInput();
             _this.revokeBlobs();
-        }, delay);
-        this.ignoreDevices();
+        }, this.options.deactivationDelay);
+        this.unwatchDevices();
         this.active = false;
         this.notifyChange();
     }
@@ -100,6 +106,7 @@ prototype.acquire = function() {
             _this.selectedDeviceID = (device) ? device.id : undefined;
             _this.notifyChange();
             return getMediaStreamMeta(stream).then(function(meta) {
+                _this.stream = stream;
                 if (constraints.video) {
                     _this.liveVideo = {
                         stream: stream,
@@ -111,7 +118,10 @@ prototype.acquire = function() {
                         stream: stream,
                     };
                 }
-                _this.monitorInput();
+                if (_this.options.watchVolume && constraints.audio) {
+                    _this.watchAudioVolume();
+                }
+                _this.watchStreamStatus();
                 _this.status = 'previewing';
                 _this.notifyChange();
             });
@@ -161,14 +171,14 @@ prototype.snap = function(dimensions) {
 /**
  * Keep an eye out for device addition/removal
  */
-prototype.monitorDevices = function() {
+prototype.watchDevices = function() {
     var mediaDevices = navigator.mediaDevices;
     if (mediaDevices && mediaDevices.addEventListener) {
         mediaDevices.addEventListener('devicechange', this.handleDeviceChange);
     }
 }
 
-prototype.ignoreDevices = function() {
+prototype.unwatchDevices = function() {
     var mediaDevices = navigator.mediaDevices;
     if (mediaDevices && mediaDevices.removeEventListener) {
         mediaDevices.removeEventListener('devicechange', this.handleDeviceChange);
@@ -178,22 +188,54 @@ prototype.ignoreDevices = function() {
 /**
  * Keep an eye on the input stream
  */
-prototype.monitorInput = function() {
-    var input = this.liveVideo || this.liveAudio;
-    var tracks = input.stream.getTracks();
+prototype.watchStreamStatus = function() {
+    var tracks = this.stream.getTracks();
     for (var i = 0; i < tracks.length; i++) {
         tracks[i].onended = this.handleStreamEnd;
     }
+};
+
+prototype.unwatchStreamStatus = function () {
+    var tracks = this.stream.getTracks();
+    for (var i = 0; i < tracks.length; i++) {
+        tracks[i].onended = null;
+    }
+};
+
+/**
+ * Keep an eye on the audio volume
+ */
+prototype.watchAudioVolume = function() {
+    if (typeof(AudioContext) === 'function')  {
+        this.audioContext = new AudioContext();
+        this.audioProcessor = this.audioContext.createScriptProcessor(4096, 1, 1);
+        this.audioSource = this.audioContext.createMediaStreamSource(this.stream);
+        this.audioProcessor.addEventListener('audioprocess', this.handleAudioProcess);
+        this.audioSource.connect(this.audioProcessor);
+        this.audioProcessor.connect(this.audioContext.destination);
+    }
+};
+
+prototype.unwatchAudioVolume = function() {
+    if (this.audioContext) {
+        this.audioProcessor.disconnect(this.audioContext.destination);
+        this.audioSource.disconnect(this.audioProcessor);
+        this.audioProcessor.removeEventListener('audioprocess', this.handleAudioProcess);
+        this.audioContext = undefined;
+        this.audioSource = undefined;
+        this.audioProcessor = undefined;
+    }
+    this.volume = undefined;
 };
 
 /**
  * Release recording device
  */
 prototype.releaseInput = function() {
-    var input = this.liveVideo || this.liveAudio;
-    if (input) {
-        stopMediaStream(input.stream);
-    }
+    this.unwatchAudioVolume();
+    this.unwatchStreamStatus();
+    stopMediaStream(this.stream);
+    this.stream = undefined;
     this.liveVideo = undefined;
     this.liveAudio = undefined;
 };
@@ -332,9 +374,8 @@ prototype.handleDeviceChange = function(evt) {
 };
 
 prototype.handleStreamEnd = function(evt) {
-    var input = this.liveVideo || this.liveAudio;
-    if (input) {
-        var tracks = input.stream.getTracks();
+    if (this.stream) {
+        var tracks = this.stream.getTracks();
         for (var i = 0; i < tracks.length; i++) {
             if (evt.target === tracks[i]) {
                 if (this.status === 'previewing') {
@@ -346,6 +387,23 @@ prototype.handleStreamEnd = function(evt) {
                 break;
             }
         }
+    }
+};
+
+prototype.handleAudioProcess = function(evt) {
+    var samples = evt.inputBuffer.getChannelData(0);
+    var max = 0;
+    var count = samples.length;
+    for (var i = 0; i < count; i++) {
+        var s = samples[i];
+        if (s > max) {
+            max = s;
+        }
+    }
+    var volume = Math.round(max * 100);
+    if (volume !== this.volume) {
+        this.volume = volume;
+        this.notifyChange();
     }
 };
 
@@ -395,7 +453,6 @@ function stopMediaStream(stream) {
     // stop all tracks
     var tracks = stream.getTracks();
     for (var i = 0; i < tracks.length; i++) {
-        tracks[i].onended = undefined;
         tracks[i].stop();
     }
 }

@@ -63,6 +63,7 @@ class FrontEnd extends PureComponent {
                 dialogBoxProps.devices = devices;
                 dialogBoxProps.selectedDeviceID = device.id;
                 dialogBoxProps.liveVideo = fakeLive(sample.video);
+                dialogBoxProps.volume = 50;
                 break;
             case 'video-dialog-sync-recording':
                 DialogBox = VideoDialogBoxSync;
