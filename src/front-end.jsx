@@ -44,56 +44,75 @@ class FrontEnd extends PureComponent {
         switch (selection) {
             case 'video-dialog-sync-acquiring':
                 DialogBox = VideoDialogBoxSync;
-                dialogBoxProps.status = 'acquiring';
+                Object.assign(dialogBoxProps, {
+                    status: 'acquiring'
+                });
                 break;
             case 'video-dialog-sync-denied':
                 DialogBox = VideoDialogBoxSync;
-                dialogBoxProps.status = 'denied';
-                dialogBoxProps.liveVideo = null;
+                Object.assign(dialogBoxProps, {
+                    status: 'denied',
+                    liveVideo: null,
+                });
                 break;
             case 'video-dialog-sync-initiating':
                 DialogBox = VideoDialogBoxSync;
-                dialogBoxProps.status = 'initiating';
-                dialogBoxProps.devices = devices;
-                dialogBoxProps.selectedDeviceID = device.id;
+                Object.assign(dialogBoxProps, {
+                    status: 'initiating',
+                    devices: devices,
+                    selectedDeviceID: device.id,
+                });
                 break;
             case 'video-dialog-sync-previewing':
                 DialogBox = VideoDialogBoxSync;
-                dialogBoxProps.status = 'previewing';
-                dialogBoxProps.devices = devices;
-                dialogBoxProps.selectedDeviceID = device.id;
-                dialogBoxProps.liveVideo = fakeLive(sample.video);
-                dialogBoxProps.volume = 50;
+                Object.assign(dialogBoxProps, {
+                    status: 'previewing',
+                    devices: devices,
+                    selectedDeviceID: device.id,
+                    liveVideo: fakeLive(sample.video),
+                    volume: 50,
+                });
                 break;
             case 'video-dialog-sync-recording':
                 DialogBox = VideoDialogBoxSync;
-                dialogBoxProps.status = 'recording';
-                dialogBoxProps.devices = devices;
-                dialogBoxProps.selectedDeviceID = device.id;
-                dialogBoxProps.liveVideo = fakeLive(sample.video);
-                dialogBoxProps.duration = 14700;
+                Object.assign(dialogBoxProps, {
+                    status: 'recording',
+                    devices: devices,
+                    selectedDeviceID: device.id,
+                    liveVideo: fakeLive(sample.video),
+                    duration: 14700,
+                    volume: 95,
+                });
                 break;
             case 'video-dialog-sync-paused':
                 DialogBox = VideoDialogBoxSync;
-                dialogBoxProps.status = 'paused';
-                dialogBoxProps.devices = devices;
-                dialogBoxProps.selectedDeviceID = device.id;
-                dialogBoxProps.liveVideo = fakeLive(sample.video);
-                dialogBoxProps.duration = 14700;
+                Object.assign(dialogBoxProps, {
+                    status: 'paused',
+                    devices: devices,
+                    selectedDeviceID: device.id,
+                    liveVideo: fakeLive(sample.video),
+                    duration: 14700,
+                    volume: 25,
+                });
                 break;
             case 'video-dialog-sync-recorded':
                 DialogBox = VideoDialogBoxSync;
-                dialogBoxProps.status = 'recorded';
-                dialogBoxProps.devices = devices;
-                dialogBoxProps.selectedDeviceID = device.id;
-                dialogBoxProps.liveVideo = fakeLive(sample.video);;
-                dialogBoxProps.duration = 38500;
-                dialogBoxProps.capturedVideo = sample.video;
-                dialogBoxProps.capturedImage = sample.image;
+                Object.assign(dialogBoxProps, {
+                    status: 'recorded',
+                    devices: devices,
+                    selectedDeviceID: device.id,
+                    liveVideo: fakeLive(sample.video);,
+                    duration: 38500,
+                    capturedVideo: sample.video,
+                    capturedImage: sample.image,
+                    volume: 10,
+                });
                 break;
             case 'video-dialog':
                 DialogBox = VideoDialogBox;
-                dialogBoxProps.onChoose = undefined;
+                Object.assign(dialogBoxProps, {
+                    onChoose: undefined,
+                });
                 break;
         }
         return <DialogBox {...dialogBoxProps} />;
