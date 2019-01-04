@@ -5,6 +5,12 @@ var defaultOptions = {
     chooseNewDevice: true,
     watchVolume: true,
     deactivationDelay: 0,
+    segmentDuration: undefined,
+    videoMIMEType: 'video/webm',
+    audioMIMEType: 'audio/webm',
+    imageMIMEType: 'image/jpeg',
+    audioBitsPerSecond: 128000,
+    videoBitsPerSecond: 2500000,
 };
 
 function RelaksCamera(options) {
@@ -20,6 +26,11 @@ function RelaksCamera(options) {
     this.audioProcessor = undefined;
     this.audioContext = undefined;
     this.audioSource = undefined;
+    this.mediaRecorder = null;
+    this.mediaRecorderStartTime = null;
+    this.mediaRecorderDuration = 0
+    this.mediaRecorderInterval = 0;
+    this.mediaRecorderBlobs = [];
     this.waitPromise = null;
     this.waitReject = null;
     this.waitResolve = null;
@@ -28,6 +39,12 @@ function RelaksCamera(options) {
     this.handleDeviceChange = this.handleDeviceChange.bind(this);
     this.handleStreamEnd = this.handleStreamEnd.bind(this);
     this.handleAudioProcess = this.handleAudioProcess.bind(this);
+    this.handleMediaRecorderData = this.handleMediaRecorderData.bind(this);
+    this.handleMediaRecorderStart = this.handleMediaRecorderStart.bind(this);
+    this.handleMediaRecorderStop = this.handleMediaRecorderStop.bind(this);
+    this.handleMediaRecorderPause = this.handleMediaRecorderPause.bind(this);
+    this.handleMediaRecorderResume = this.handleMediaRecorderResume.bind(this);
+    this.handleMediaRecorderInterval = this.handleMediaRecorderInterval.bind(this);
 
     for (var name in defaultOptions) {
         if (options && options[name] !== undefined) {
@@ -63,6 +80,21 @@ prototype.activate = function() {
  */
 prototype.deactivate = function() {
     if (this.active) {
+        if (this.mediaRecorder) {
+            clearInterval(this.mediaRecorderInterval);
+            this.mediaRecorder.removeEventListener('dataavailable', this.handleMediaRecorderData);
+            this.mediaRecorder.removeEventListener('start', this.handleMediaRecorderStart);
+            this.mediaRecorder.removeEventListener('stop', this.handleMediaRecorderStop);
+            this.mediaRecorder.removeEventListener('pause', this.handleMediaRecorderPause);
+            this.mediaRecorder.removeEventListener('resume', this.handleMediaRecorderResume);
+            this.mediaRecorder.stop();
+            this.mediaRecorder = null;
+            this.mediaRecorderStartTime = null;
+            this.mediaRecorderDuration = 0
+            this.mediaRecorderInterval = 0;
+            this.mediaRecorderBlobs = [];
+        }
+
         var _this = this;
         setTimeout(function() {
             _this.releaseInput();
@@ -137,20 +169,61 @@ prototype.acquire = function() {
 
 /**
  * Start capturing video/audio
- *
- * @return {Promise}
  */
 prototype.start = function() {
-
+    if (!this.stream) {
+        throw new RelaksMediaCaptureError('No media stream');
+    }
+    if (this.mediaRecorder) {
+        return;
+    }
+    let segmentDuration = this.options.segmentDuration;
+    let options = {};
+    if (this.options.audio) {
+        options.audioBitsPerSecond = this.options.audioBitsPerSecond;
+        options.mimeType = this.options.audioMIMEType;
+    }
+    if (this.options.video) {
+        options.videoBitsPerSecond = this.options.videoBitsPerSecond,
+        options.mimeType = this.options.videoMIMEType;
+    }
+    this.mediaRecorder = new MediaRecorder(this.stream, options);
+    this.mediaRecorder.addEventListener('dataavailable', this.handleMediaRecorderData);
+    this.mediaRecorder.addEventListener('start', this.handleMediaRecorderStart);
+    this.mediaRecorder.addEventListener('stop', this.handleMediaRecorderStop);
+    this.mediaRecorder.addEventListener('pause', this.handleMediaRecorderPause);
+    this.mediaRecorder.addEventListener('resume', this.handleMediaRecorderResume);
+    this.mediaRecorder.start(segmentDuration);
 };
 
 /**
  * Stop capturing video/audio
- *
- * @return {Promise}
  */
 prototype.stop = function() {
+    if (!this.mediaRecorder) {
+        throw new RelaksMediaCaptureError('No media recorder');
+    }
+    this.mediaRecorder.stop();
+};
 
+/**
+ * Pause recording
+ */
+prototype.pause = function() {
+    if (!this.mediaRecorder) {
+        throw new RelaksMediaCaptureError('No media recorder');
+    }
+    this.mediaRecorder.pause();
+};
+
+/**
+ * Resume recording
+ */
+prototype.resume = function() {
+    if (!this.mediaRecorder) {
+        throw new RelaksMediaCaptureError('No media recorder');
+    }
+    this.mediaRecorder.resume();
 };
 
 /**
@@ -405,6 +478,85 @@ prototype.handleAudioProcess = function(evt) {
         this.volume = volume;
         this.notifyChange();
     }
+};
+
+prototype.handleMediaRecorderData = function(evt) {
+    this.mediaRecorderBlobs.push(evt.data);
+};
+
+prototype.handleMediaRecorderStart = function(evt) {
+    this.mediaRecorderInterval = setInterval(this.handleMediaRecorderInterval, 100);
+    this.mediaRecorderStartTime = new Date;
+    this.status = 'recording';
+    this.notifyChange();
+};
+
+prototype.handleMediaRecorderStop = function(evt) {
+    clearInterval(this.mediaRecorderInterval);
+
+    let blobs = this.mediaRecorderBlobs;
+    if (blobs.length > 0) {
+        var blob;
+        if (blobs.length === 1) {
+            blob = blobs[0];
+        } else {
+            blob = new Blob(blobs, { type: blobs[0].type });
+        }
+        var url = URL.createObjectURL(blob);
+        if (this.liveVideo) {
+            this.capturedVideo = {
+                url: url,
+                blob: blob,
+                blobs: blobs,
+                duration: this.duration,
+                width: this.liveVideo.width,
+                height: this.liveVideo.height,
+            };
+        } else if (this.liveAudio) {
+            this.capturedAudio = {
+                url: url,
+                blob: blob,
+                blobs: blobs,
+                duration: this.duration,
+            };
+        }
+        if (this.mediaRecorderStartTime) {
+            var now = new Date;
+            var elapsed = now - this.mediaRecorderStartTime;
+            this.duration = this.mediaRecorderDuration + elapsed;
+        }
+        this.status = 'recorded';
+    } else {
+        this.duration = undefined;
+        this.status = 'previewing';
+    }
+    this.mediaRecorder = null;
+    this.mediaRecorderBlobs = [];
+    this.mediaRecorderInterval = 0;
+    this.mediaRecorderStartTime = null;
+    this.mediaRecorderDuration = 0;
+    this.notifyChange();
+};
+
+prototype.handleMediaRecorderPause = function(evt) {
+    clearInterval(this.mediaRecorderInterval);
+
+    var now = new Date;
+    var elapsed = now - this.mediaRecorderStartTime;
+    this.duration = this.mediaRecorderDuration + elapsed;
+    this.mediaRecorderDuration = this.duration;
+    this.mediaRecorderStartTime = null;
+    this.status = 'paused';
+    this.notifyChange();
+};
+
+prototype.handleMediaRecorderResume = prototype.handleMediaRecorderStart;
+
+prototype.handleMediaRecorderInterval = function() {
+    var now = new Date;
+    var elapsed = now - this.mediaRecorderStartTime;
+    this.duration = this.mediaRecorderDuration + elapsed;
+    this.notifyChange();
 };
 
 function getMediaStream(constraints) {

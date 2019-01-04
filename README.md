@@ -22,9 +22,9 @@ For our video capturing component, we'd create something like this:
 * Frame 64: Duration changes to `01:00`
 * Frame 65: The recorded video (after the user pressed the **Stop** button)
 
-This animation runs for a bit longer, naturally. It's also non-linear. The user can change how it unfolds. Conceptually though, it's not at all different from what we've been creating so far. We're going to employ the same strategy as before: create a regular React component that handles the visual aspects and a Relaks component that deals with the temporal aspects.
+This animation runs for a bit longer, naturally. It's also non-linear. The user can change how it unfolds. Conceptually though, it's not at all different from what we've been creating so far. We're going to employ the same strategy as before: create a regular React component that handles the visual aspects and a Relaks component that handles with the temporal aspects.
 
-Meanwhile, the details of utilizing the [Media Streams API](https://developer.mozilla.org/en-US/docs/Web/API/Media_Streams_API) will get shoved into a separate reusable class.
+Meanwhile, the details concerning with camera management and video encoding will get shoved into a [separate reusable class](https://github.com/trambarhq/relaks-media-capture).
 
 ## Getting Started
 

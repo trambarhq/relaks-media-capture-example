@@ -101,7 +101,7 @@ class FrontEnd extends PureComponent {
                     status: 'recorded',
                     devices: devices,
                     selectedDeviceID: device.id,
-                    liveVideo: fakeLive(sample.video);,
+                    liveVideo: fakeLive(sample.video),
                     duration: 38500,
                     capturedVideo: sample.video,
                     capturedImage: sample.image,

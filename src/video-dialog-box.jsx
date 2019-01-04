@@ -171,7 +171,7 @@ class VideoDialogBoxSync extends PureComponent {
                 return <LiveVideo srcObject={liveVideo.stream} width={liveVideo.width} height={liveVideo.height} muted />;
             case 'recorded':
             case 'approved':
-                return <video src={capturedVideo.url} width={capturedVideo.width} height={capturedVideo.height} poster={capturedImage.url} controls />;
+                return <video src={capturedVideo.url} width={capturedVideo.width} height={capturedVideo.height} controls />;
         }
     }
 
