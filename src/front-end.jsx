@@ -37,7 +37,7 @@ class FrontEnd extends PureComponent {
         let device = devices[camera];
         let dialogBoxProps = {
             onClose: this.handleDialogClose,
-            onCancel: this.handleDialogClose,
+            onCapture: this.handleMediaCapture,
             onChoose: this.handleCameraChoose,
         };
         let DialogBox;
@@ -141,6 +141,15 @@ class FrontEnd extends PureComponent {
 
     handleDialogClose = (evt) => {
         this.setState({ selection: null });
+    }
+
+    handleMediaCapture = (evt) => {
+        if (evt.image) {
+            console.log('image:', evt.image);
+        }
+        if (evt.video) {
+            console.log('video:', evt.video);
+        }
     }
 
     handleCameraChoose = (evt) => {

@@ -16,6 +16,7 @@ class VideoDialogBox extends AsyncComponent {
     }
 
     async renderAsync(meanwhile) {
+        meanwhile.delay(50, 50);
         let props = {
             onStart: this.handleStart,
             onStop: this.handleStop,
@@ -26,7 +27,6 @@ class VideoDialogBox extends AsyncComponent {
             onAccept: this.handleAccept,
             onCancel: this.handleCancel,
         };
-        meanwhile.delay(50, 50);
         meanwhile.show(<VideoDialogBoxSync {...props} />);
         this.capture.activate();
         do {
@@ -86,13 +86,19 @@ class VideoDialogBox extends AsyncComponent {
         let { onCapture } = this.props;
         if (onCapture) {
             let media = this.capture.extract();
-            onCapture({
+            let evt = {
                 type: 'capture',
                 target: this,
-                video: media.video,
-                image: media.image,
-                audio: media.audio,
-            });
+            };
+            if (media.video) {
+                evt.video = media.video;
+            } else if (media.audio) {
+                evt.audio = media.audio;
+            }
+            if (media.image) {
+                evt.image = media.image;
+            }
+            onCapture(evt);
         }
         this.capture.deactivate();
         this.handleCancel();
@@ -365,8 +371,8 @@ class LiveVideo extends PureComponent {
 if (process.env.NODE_ENV !== 'production') {
     const PropTypes = require('prop-types');
     VideoDialogBox.propTypes = {
-        onCancel: PropTypes.func,
-        onAccept: PropTypes.func,
+        onClose: PropTypes.func,
+        onCapture: PropTypes.func,
     };
 
     VideoDialogBoxSync.propTypes = {

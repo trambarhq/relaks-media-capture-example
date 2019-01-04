@@ -359,6 +359,7 @@ prototype.extract = function() {
             height: this.capturedVideo.height,
         };
     }
+    return media;
 };
 
 prototype.reacquire = function() {
@@ -375,6 +376,11 @@ prototype.choose = function(deviceID) {
 
 prototype.clear = function() {
     this.revokeBlobs();
+    if (this.liveVideo) {
+        this.status = 'previewing';
+    } else {
+        this.status = undefined;
+    }
     this.notifyChange();
 };
 
