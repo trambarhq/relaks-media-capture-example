@@ -50,6 +50,7 @@ class VideoDialogBox extends AsyncComponent {
 
     handleStart = (evt) => {
         this.capture.start();
+        this.capture.snap();
     }
 
     handleStop = (evt) => {
@@ -176,8 +177,7 @@ class VideoDialogBoxSync extends PureComponent {
             case 'paused':
                 return <LiveVideo srcObject={liveVideo.stream} width={liveVideo.width} height={liveVideo.height} muted />;
             case 'recorded':
-            case 'approved':
-                return <video src={capturedVideo.url} width={capturedVideo.width} height={capturedVideo.height} controls />;
+                return <video src={capturedVideo.url} poster={capturedImage.url} width={capturedVideo.width} height={capturedVideo.height} controls />;
         }
     }
 
@@ -232,7 +232,7 @@ class VideoDialogBoxSync extends PureComponent {
 
     renderVolume() {
         let { status, volume } = this.props;
-        if (volume === undefined || status === 'recorded' || status === 'approved') {
+        if (volume === undefined || status === 'recorded') {
             return <div className="volume" />;
         }
         let iconClassName = 'fa';
@@ -286,7 +286,6 @@ class VideoDialogBoxSync extends PureComponent {
                     </div>
                 );
             case 'recorded':
-            case 'approved':
                 return (
                     <div className="buttons">
                         <button onClick={onClear}>Retake</button>
@@ -384,7 +383,6 @@ if (process.env.NODE_ENV !== 'production') {
             'recording',
             'paused',
             'recorded',
-            'approved',
         ]),
         liveVideo: PropTypes.shape({
             stream: PropTypes.instanceOf(Object).isRequired,

@@ -228,17 +228,23 @@ prototype.resume = function() {
 
 /**
  * Capture a snapshot of the video input
- *
- * @param  {Object|undefined} dimensions
- *
- * @return {Promise}
  */
-prototype.snap = function(dimensions) {
-    var width = video.videoWidth;
-    var height = video.videoHeight;
-    var canvas = document.createElement('CANVAS');
-    canvas.width = width;
-    canvas.height = height;
+prototype.snap = function() {
+    var _this = this;
+    var mimeType = this.options.imageMIMEType;
+    var quality = this.options.imageQuality || 90;
+    getMediaStreamSnapshot(this.stream).then(function(canvas) {
+        saveCanvasContents(canvas, mimeType, quality).then(function(blob) {
+            var url = URL.createObjectURL(blob);
+            _this.capturedImage = {
+                url: url,
+                blob: blob,
+                width: canvas.width,
+                height: canvas.height,
+            };
+            _this.notifyChange();
+        });
+    });
 };
 
 /**
@@ -354,9 +360,9 @@ prototype.extract = function() {
     }
     if (this.capturedImage) {
         media.image = {
-            blob: this.capturedVideo,
-            width: this.capturedVideo.width,
-            height: this.capturedVideo.height,
+            blob: this.capturedImage,
+            width: this.capturedImage.width,
+            height: this.capturedImage.height,
         };
     }
     return media;
@@ -602,6 +608,38 @@ function getMediaStreamMeta(stream) {
     });
 }
 
+function getMediaStreamSnapshot(stream) {
+    return new Promise(function(resolve, reject) {
+        var video = document.createElement('VIDEO');
+        video.srcObject = stream;
+        video.muted = true;
+        // dimensions aren't always available when loadedmetadata fires
+        // listening for additional event just in case
+        video.oncanplay = function(evt) {
+            if (resolve) {
+                var target = evt.target;
+                var w = target.videoWidth;
+                var h = target.videoHeight;
+                var canvas = document.createElement('CANVAS');
+                canvas.width = w;
+                canvas.height = h;
+                var context = canvas.getContext('2d');
+                context.drawImage(video, 0, 0, w, h);
+                resolve(canvas);
+                target.pause();
+                target.srcObject = null;
+                resolve = null;
+            }
+        };
+        video.onerror = function(evt) {
+            var err = new RelaksMediaCaptureError('Unable to capture image');
+            reject(err);
+            video.pause();
+        };
+        video.play();
+    });
+}
+
 /**
  * Stop all tracks of a media stream
  *
@@ -712,7 +750,7 @@ function chooseDevice(devices, preferred) {
 function saveCanvasContents(canvas, mimeType, quality) {
     return new Promise(function(resolve, reject) {
         if (typeof(canvas.toBlob) === 'function') {
-            resolve.toBlob(cb, mimeType, 90);
+            canvas.toBlob(resolve, mimeType, 90);
         } else {
             var dataURL = canvas.toDataURL(mimeType, quality);
             var xhr = new XMLHttpRequest();
