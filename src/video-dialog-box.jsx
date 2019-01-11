@@ -1,6 +1,7 @@
 import React, { PureComponent } from 'react';
 import { AsyncComponent } from 'relaks';
 import RelaksMediaCapture from 'relaks-media-capture';
+import LiveVideo from 'live-video';
 
 class VideoDialogBox extends AsyncComponent {
     static displayName = 'VideoDialogBoxAsync';
@@ -45,6 +46,7 @@ class VideoDialogBox extends AsyncComponent {
     }
 
     componentWillUnmount() {
+        super.componentWillUnmount();
         this.capture.deactivate();
     }
 
@@ -117,6 +119,27 @@ class VideoDialogBoxSync extends PureComponent {
         };
     }
 
+    static getDerivedStateFromProps(props, state) {
+        let { liveVideo } = props;
+        if (liveVideo) {
+            let html = document.body.parentNode;
+            let viewportWidth = liveVideo.width;
+            let viewportHeight = liveVideo.height;
+            let availableWidth = html.clientWidth - 50;
+            let availableHeight = html.clientHeight - 100;
+            if (viewportWidth > availableWidth) {
+                viewportHeight = Math.round(viewportHeight * availableWidth / viewportWidth);
+                viewportWidth = availableWidth;
+            }
+            if (viewportHeight > availableHeight) {
+                viewportWidth = Math.round(viewportWidth * availableHeight / viewportHeight);
+                viewportHeight = availableHeight;
+            }
+            return { viewportWidth, viewportHeight };
+        }
+        return null;
+    }
+
     render() {
         return (
             <div className="overlay">
@@ -156,6 +179,11 @@ class VideoDialogBoxSync extends PureComponent {
 
     renderPicture() {
         let { status, liveVideo, capturedVideo, capturedImage } = this.props;
+        let { viewportWidth, viewportHeight } = this.state;
+        let videoStyle = {
+            width: viewportWidth,
+            height: viewportHeight,
+        };
         switch (status) {
             case 'acquiring':
                 return (
@@ -173,11 +201,11 @@ class VideoDialogBoxSync extends PureComponent {
             case 'initiating':
                 return <LiveVideo muted />;
             case 'previewing':
-            case 'recording':
+            case 'capturing':
             case 'paused':
-                return <LiveVideo srcObject={liveVideo.stream} width={liveVideo.width} height={liveVideo.height} muted />;
-            case 'recorded':
-                return <video src={capturedVideo.url} poster={capturedImage.url} width={capturedVideo.width} height={capturedVideo.height} controls />;
+                return <LiveVideo srcObject={liveVideo.stream} style={videoStyle} muted />;
+            case 'captured':
+                return <video src={capturedVideo.url} poster={capturedImage.url} style={videoStyle} controls />;
         }
     }
 
@@ -232,7 +260,7 @@ class VideoDialogBoxSync extends PureComponent {
 
     renderVolume() {
         let { status, volume } = this.props;
-        if (volume === undefined || status === 'recorded') {
+        if (volume === undefined || status === 'captured') {
             return <div className="volume" />;
         }
         let iconClassName = 'fa';
@@ -244,8 +272,8 @@ class VideoDialogBoxSync extends PureComponent {
             iconClassName += ' fa-volume-off';
         }
         let barClassName = 'volume-bar';
-        if (status === 'recording') {
-            barClassName += ' recording';
+        if (status === 'capturing') {
+            barClassName += ' capturing';
         }
         return (
             <div className="volume">
@@ -271,7 +299,7 @@ class VideoDialogBoxSync extends PureComponent {
                         <button onClick={onStart} disabled={status !== 'previewing'}>Start</button>
                     </div>
                 );
-            case 'recording':
+            case 'capturing':
                 return (
                     <div className="buttons">
                         <button onClick={onPause}>Pause</button>
@@ -285,29 +313,13 @@ class VideoDialogBoxSync extends PureComponent {
                         <button onClick={onStop}>Stop</button>
                     </div>
                 );
-            case 'recorded':
+            case 'captured':
                 return (
                     <div className="buttons">
                         <button onClick={onClear}>Retake</button>
-                        <button onClick={onAccept} disabled={status !== 'recorded'}>Accept</button>
+                        <button onClick={onAccept} disabled={status !== 'captured'}>Accept</button>
                     </div>
                 );
-        }
-    }
-
-    componentDidMount() {
-        this.componentDidUpdate({}, {});
-    }
-
-    componentDidUpdate(prevProps, prevState) {
-        let { liveVideo } = this.props;
-        if (prevProps.liveVideo !== liveVideo) {
-            if (liveVideo) {
-                this.setState({
-                    viewportWidth: liveVideo.width,
-                    viewportHeight: liveVideo.height,
-                });
-            }
         }
     }
 
@@ -320,49 +332,6 @@ class VideoDialogBoxSync extends PureComponent {
                 target: this,
                 id,
             });
-        }
-    }
-}
-
-class LiveVideo extends PureComponent {
-    render() {
-        let { srcObject, ...props } = this.props;
-        if (srcObject instanceof Blob) {
-            // srcObject is supposed to accept a blob but that's not
-            // currently supported by the browsers
-            props.src = this.blobURL = URL.createObjectURL(srcObject);
-        }
-        return <video ref={this.setNode} {...props} />
-    }
-
-    setNode = (node) => {
-        this.node = node;
-    }
-
-    setSrcObject() {
-        let { srcObject } = this.props;
-        if (srcObject) {
-            if (!(srcObject instanceof Blob)) {
-                this.node.srcObject = srcObject;
-            }
-            this.node.play();
-        }
-    }
-
-    componentDidMount() {
-        this.setSrcObject();
-    }
-
-    componentDidUpdate(prevProps, prevState) {
-        let { srcObject } = this.props;
-        if (prevProps.srcObject !== srcObject) {
-            this.setSrcObject();
-        }
-    }
-
-    componentWillUnmount() {
-        if (this.blobURL) {
-            URL.revokeObjectURL(this.blobURL);
         }
     }
 }
@@ -380,9 +349,9 @@ if (process.env.NODE_ENV !== 'production') {
             'denied',
             'initiating',
             'previewing',
-            'recording',
+            'capturing',
             'paused',
-            'recorded',
+            'captured',
         ]),
         liveVideo: PropTypes.shape({
             stream: PropTypes.instanceOf(Object).isRequired,
