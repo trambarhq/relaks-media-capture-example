@@ -3,16 +3,16 @@ import { AsyncComponent } from 'relaks';
 import RelaksMediaCapture from 'relaks-media-capture';
 import LiveVideo from 'live-video';
 
-class VideoDialogBox extends AsyncComponent {
-    static displayName = 'VideoDialogBoxAsync';
+class PhotoDialogBox extends AsyncComponent {
+    static displayName = 'PhotoDialogBoxAsync';
 
     constructor(props) {
         super(props);
         let options = {
             video: true,
-            audio: true,
+            audio: false,
             preferredDevice: 'front',
-            watchVolume: true,
+            captureImageOnly: true,
         };
         this.capture = new RelaksMediaCapture(options);
     }
@@ -20,30 +20,24 @@ class VideoDialogBox extends AsyncComponent {
     async renderAsync(meanwhile) {
         meanwhile.delay(50, 50);
         let props = {
-            onStart: this.handleStart,
-            onStop: this.handleStop,
-            onPause: this.handlePause,
-            onResume: this.handleResume,
+            onSnap: this.handleSnap,
             onClear: this.handleClear,
             onChoose: this.handleChoose,
             onAccept: this.handleAccept,
             onCancel: this.handleCancel,
         };
-        meanwhile.show(<VideoDialogBoxSync {...props} />);
+        meanwhile.show(<PhotoDialogBoxSync {...props} />);
         this.capture.activate();
         do {
             props.status = this.capture.status;
             props.devices = this.capture.devices;
             props.selectedDeviceID = this.capture.selectedDeviceID;
             props.liveVideo = this.capture.liveVideo;
-            props.duration = this.capture.duration;
-            props.volume = this.capture.volume;
             props.capturedImage = this.capture.capturedImage;
-            props.capturedVideo = this.capture.capturedVideo;
-            meanwhile.show(<VideoDialogBoxSync {...props} />);
+            meanwhile.show(<PhotoDialogBoxSync {...props} />);
             await this.capture.change();
         } while (this.capture.active);
-        return <VideoDialogBoxSync {...props} />;
+        return <PhotoDialogBoxSync {...props} />;
     }
 
     componentWillUnmount() {
@@ -51,21 +45,8 @@ class VideoDialogBox extends AsyncComponent {
         this.capture.deactivate();
     }
 
-    handleStart = (evt) => {
-        this.capture.start();
+    handleSnap = (evt) => {
         this.capture.snap();
-    }
-
-    handleStop = (evt) => {
-        this.capture.stop();
-    }
-
-    handlePause = (evt) => {
-        this.capture.pause();
-    }
-
-    handleResume = (evt) => {
-        this.capture.resume();
     }
 
     handleClear = (evt) => {
@@ -88,17 +69,11 @@ class VideoDialogBox extends AsyncComponent {
 
     handleAccept = (evt) => {
         let { onCapture } = this.props;
-        let { capturedVideo, capturedImage } = this.capture;
+        let { capturedImage } = this.capture;
         if (onCapture) {
             let evt = {
                 type: 'capture',
                 target: this,
-                video: {
-                    blob: capturedVideo.blob,
-                    width: capturedVideo.width,
-                    height: capturedVideo.height,
-                    duration: capturedVideo.duration,
-                },
                 image: {
                     blob: capturedImage.blob,
                     width: capturedImage.width,
@@ -112,8 +87,8 @@ class VideoDialogBox extends AsyncComponent {
     }
 }
 
-class VideoDialogBoxSync extends PureComponent {
-    static displayName = 'VideoDialogBoxSync';
+class PhotoDialogBoxSync extends PureComponent {
+    static displayName = 'PhotoDialogBoxSync';
 
     constructor(props) {
         super(props);
@@ -160,7 +135,7 @@ class VideoDialogBoxSync extends PureComponent {
         let { onCancel } = this.props;
         return (
             <div className="title">
-                Video Recorder
+                Image Capture
                 <i className="fa fa-window-close" onClick={onCancel} />
             </div>
         );
@@ -182,7 +157,7 @@ class VideoDialogBoxSync extends PureComponent {
     }
 
     renderVideo() {
-        let { status, liveVideo, capturedVideo, capturedImage } = this.props;
+        let { status, liveVideo, capturedImage } = this.props;
         let { viewportWidth, viewportHeight } = this.state;
         let videoStyle = {
             width: viewportWidth,
@@ -192,13 +167,13 @@ class VideoDialogBoxSync extends PureComponent {
             case 'acquiring':
                 return (
                     <span className="fa-stack fa-lg">
-                        <i className="fa fa-video fa-stack-1x" />
+                        <i className="fa fa-camera fa-stack-1x" />
                     </span>
                 );
             case 'denied':
                 return (
                     <span className="fa-stack fa-lg">
-                        <i className="fa fa-video fa-stack-1x" />
+                        <i className="fa fa-camera fa-stack-1x" />
                         <i className="fa fa-ban fa-stack-2x" />
                     </span>
                 );
@@ -209,15 +184,14 @@ class VideoDialogBoxSync extends PureComponent {
             case 'paused':
                 return <LiveVideo srcObject={liveVideo.stream} style={videoStyle} muted />;
             case 'captured':
-                return <video src={capturedVideo.url} poster={capturedImage.url} style={videoStyle} controls />;
+                return <img src={capturedImage.url} style={videoStyle} />;
         }
     }
 
     renderControls() {
         return (
             <div className="controls">
-                {this.renderDuration() || this.renderDeviceMenu()}
-                {this.renderVolume()}
+                {this.renderDeviceMenu()}
                 {this.renderButtons()}
             </div>
         )
@@ -254,36 +228,9 @@ class VideoDialogBoxSync extends PureComponent {
         return <div className="duration">{`${hh}:${mm}:${ss}`}</div>
     }
 
-    renderVolume() {
-        let { status, volume } = this.props;
-        if (volume === undefined || status === 'captured') {
-            return <div className="volume" />;
-        }
-        let iconClassName = 'fa';
-        if (volume > 40) {
-            iconClassName += ' fa-volume-up';
-        } else if (volume > 10) {
-            iconClassName += ' fa-volume-down';
-        } else {
-            iconClassName += ' fa-volume-off';
-        }
-        let barClassName = 'volume-bar';
-        if (status === 'capturing') {
-            barClassName += ' capturing';
-        }
-        return (
-            <div className="volume">
-                <i className={iconClassName} />
-                <div className="volume-bar-frame">
-                    <div className={barClassName} style={{ width: volume + '%' }} />
-                </div>
-            </div>
-        );
-    }
-
     renderButtons() {
         let { status } = this.props;
-        let { onCancel, onStart, onPause, onResume, onStop, onClear, onAccept } = this.props;
+        let { onCancel, onSnap, onClear, onAccept } = this.props;
         switch (status) {
             case 'acquiring':
             case 'denied':
@@ -292,21 +239,7 @@ class VideoDialogBoxSync extends PureComponent {
                 return (
                     <div className="buttons">
                         <button onClick={onCancel}>Cancel</button>
-                        <button onClick={onStart} disabled={status !== 'previewing'}>Start</button>
-                    </div>
-                );
-            case 'capturing':
-                return (
-                    <div className="buttons">
-                        <button onClick={onPause}>Pause</button>
-                        <button onClick={onStop}>Stop</button>
-                    </div>
-                );
-            case 'paused':
-                return (
-                    <div className="buttons">
-                        <button onClick={onResume}>Resume</button>
-                        <button onClick={onStop}>Stop</button>
+                        <button onClick={onSnap} disabled={status !== 'previewing'}>Take</button>
                     </div>
                 );
             case 'captured':
@@ -334,29 +267,21 @@ class VideoDialogBoxSync extends PureComponent {
 
 if (process.env.NODE_ENV !== 'production') {
     const PropTypes = require('prop-types');
-    VideoDialogBox.propTypes = {
+    PhotoDialogBox.propTypes = {
         onClose: PropTypes.func,
         onCapture: PropTypes.func,
     };
 
-    VideoDialogBoxSync.propTypes = {
+    PhotoDialogBoxSync.propTypes = {
         status: PropTypes.oneOf([
             'acquiring',
             'denied',
             'initiating',
             'previewing',
-            'capturing',
-            'paused',
             'captured',
         ]),
         liveVideo: PropTypes.shape({
             stream: PropTypes.instanceOf(MediaStream).isRequired,
-            width: PropTypes.number.isRequired,
-            height: PropTypes.number.isRequired,
-        }),
-        capturedVideo: PropTypes.shape({
-            url: PropTypes.string.isRequired,
-            blob: PropTypes.instanceOf(Blob).isRequired,
             width: PropTypes.number.isRequired,
             height: PropTypes.number.isRequired,
         }),
@@ -366,8 +291,6 @@ if (process.env.NODE_ENV !== 'production') {
             width: PropTypes.number.isRequired,
             height: PropTypes.number.isRequired,
         }),
-        volume: PropTypes.number,
-        duration: PropTypes.number,
         devices: PropTypes.arrayOf(PropTypes.shape({
             id: PropTypes.string,
             label: PropTypes.string,
@@ -376,17 +299,14 @@ if (process.env.NODE_ENV !== 'production') {
 
         onChoose: PropTypes.func,
         onCancel: PropTypes.func,
-        onStart: PropTypes.func,
-        onStop: PropTypes.func,
-        onPause: PropTypes.func,
-        onResume: PropTypes.func,
+        onSnap: PropTypes.func,
         onClear: PropTypes.func,
         onAccept: PropTypes.func,
     };
 }
 
 export {
-    VideoDialogBox as default,
-    VideoDialogBox,
-    VideoDialogBoxSync,
+    PhotoDialogBox as default,
+    PhotoDialogBox,
+    PhotoDialogBoxSync,
 };

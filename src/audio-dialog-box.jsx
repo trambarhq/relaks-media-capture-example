@@ -1,15 +1,14 @@
 import React, { PureComponent } from 'react';
 import { AsyncComponent } from 'relaks';
 import RelaksMediaCapture from 'relaks-media-capture';
-import LiveVideo from 'live-video';
 
-class VideoDialogBox extends AsyncComponent {
-    static displayName = 'VideoDialogBoxAsync';
+class AudioDialogBox extends AsyncComponent {
+    static displayName = 'AudioDialogBoxAsync';
 
     constructor(props) {
         super(props);
         let options = {
-            video: true,
+            video: false,
             audio: true,
             preferredDevice: 'front',
             watchVolume: true,
@@ -29,21 +28,19 @@ class VideoDialogBox extends AsyncComponent {
             onAccept: this.handleAccept,
             onCancel: this.handleCancel,
         };
-        meanwhile.show(<VideoDialogBoxSync {...props} />);
+        meanwhile.show(<AudioDialogBoxSync {...props} />);
         this.capture.activate();
         do {
             props.status = this.capture.status;
             props.devices = this.capture.devices;
             props.selectedDeviceID = this.capture.selectedDeviceID;
-            props.liveVideo = this.capture.liveVideo;
             props.duration = this.capture.duration;
             props.volume = this.capture.volume;
-            props.capturedImage = this.capture.capturedImage;
-            props.capturedVideo = this.capture.capturedVideo;
-            meanwhile.show(<VideoDialogBoxSync {...props} />);
+            props.capturedAudio = this.capture.capturedAudio;
+            meanwhile.show(<AudioDialogBoxSync {...props} />);
             await this.capture.change();
         } while (this.capture.active);
-        return <VideoDialogBoxSync {...props} />;
+        return <AudioDialogBoxSync {...props} />;
     }
 
     componentWillUnmount() {
@@ -53,7 +50,6 @@ class VideoDialogBox extends AsyncComponent {
 
     handleStart = (evt) => {
         this.capture.start();
-        this.capture.snap();
     }
 
     handleStop = (evt) => {
@@ -93,16 +89,9 @@ class VideoDialogBox extends AsyncComponent {
             let evt = {
                 type: 'capture',
                 target: this,
-                video: {
+                audio: {
                     blob: capturedVideo.blob,
-                    width: capturedVideo.width,
-                    height: capturedVideo.height,
                     duration: capturedVideo.duration,
-                },
-                image: {
-                    blob: capturedImage.blob,
-                    width: capturedImage.width,
-                    height: capturedImage.height,
                 },
             };
             onCapture(evt);
@@ -112,36 +101,15 @@ class VideoDialogBox extends AsyncComponent {
     }
 }
 
-class VideoDialogBoxSync extends PureComponent {
-    static displayName = 'VideoDialogBoxSync';
+class AudioDialogBoxSync extends PureComponent {
+    static displayName = 'AudioDialogBoxSync';
 
     constructor(props) {
         super(props);
         this.state = {
-            viewportWidth: 320,
+            viewportWidth: 640,
             viewportHeight: 240,
         };
-    }
-
-    static getDerivedStateFromProps(props, state) {
-        let { liveVideo } = props;
-        if (liveVideo) {
-            let html = document.body.parentNode;
-            let viewportWidth = liveVideo.width;
-            let viewportHeight = liveVideo.height;
-            let availableWidth = html.clientWidth - 50;
-            let availableHeight = html.clientHeight - 100;
-            if (viewportWidth > availableWidth) {
-                viewportHeight = Math.round(viewportHeight * availableWidth / viewportWidth);
-                viewportWidth = availableWidth;
-            }
-            if (viewportHeight > availableHeight) {
-                viewportWidth = Math.round(viewportWidth * availableHeight / viewportHeight);
-                viewportHeight = availableHeight;
-            }
-            return { viewportWidth, viewportHeight };
-        }
-        return null;
     }
 
     render() {
@@ -160,7 +128,7 @@ class VideoDialogBoxSync extends PureComponent {
         let { onCancel } = this.props;
         return (
             <div className="title">
-                Video Recorder
+                Audio Recorder
                 <i className="fa fa-window-close" onClick={onCancel} />
             </div>
         );
@@ -182,34 +150,27 @@ class VideoDialogBoxSync extends PureComponent {
     }
 
     renderVideo() {
-        let { status, liveVideo, capturedVideo, capturedImage } = this.props;
-        let { viewportWidth, viewportHeight } = this.state;
-        let videoStyle = {
-            width: viewportWidth,
-            height: viewportHeight,
-        };
+        let { status, capturedAudio } = this.props;
         switch (status) {
             case 'acquiring':
+            case 'initiating':
+            case 'previewing':
+            case 'capturing':
+            case 'paused':
                 return (
                     <span className="fa-stack fa-lg">
-                        <i className="fa fa-video fa-stack-1x" />
+                        <i className="fa fa-microphone fa-stack-1x" />
                     </span>
                 );
             case 'denied':
                 return (
                     <span className="fa-stack fa-lg">
-                        <i className="fa fa-video fa-stack-1x" />
+                        <i className="fa fa-microphone fa-stack-1x" />
                         <i className="fa fa-ban fa-stack-2x" />
                     </span>
                 );
-            case 'initiating':
-                return <LiveVideo muted />;
-            case 'previewing':
-            case 'capturing':
-            case 'paused':
-                return <LiveVideo srcObject={liveVideo.stream} style={videoStyle} muted />;
             case 'captured':
-                return <video src={capturedVideo.url} poster={capturedImage.url} style={videoStyle} controls />;
+                return <audio src={capturedAudio.url} controls />;
         }
     }
 
@@ -334,12 +295,12 @@ class VideoDialogBoxSync extends PureComponent {
 
 if (process.env.NODE_ENV !== 'production') {
     const PropTypes = require('prop-types');
-    VideoDialogBox.propTypes = {
+    AudioDialogBox.propTypes = {
         onClose: PropTypes.func,
         onCapture: PropTypes.func,
     };
 
-    VideoDialogBoxSync.propTypes = {
+    AudioDialogBoxSync.propTypes = {
         status: PropTypes.oneOf([
             'acquiring',
             'denied',
@@ -349,22 +310,9 @@ if (process.env.NODE_ENV !== 'production') {
             'paused',
             'captured',
         ]),
-        liveVideo: PropTypes.shape({
-            stream: PropTypes.instanceOf(MediaStream).isRequired,
-            width: PropTypes.number.isRequired,
-            height: PropTypes.number.isRequired,
-        }),
-        capturedVideo: PropTypes.shape({
+        capturedAudio: PropTypes.shape({
             url: PropTypes.string.isRequired,
             blob: PropTypes.instanceOf(Blob).isRequired,
-            width: PropTypes.number.isRequired,
-            height: PropTypes.number.isRequired,
-        }),
-        capturedImage: PropTypes.shape({
-            url: PropTypes.string.isRequired,
-            blob: PropTypes.instanceOf(Blob).isRequired,
-            width: PropTypes.number.isRequired,
-            height: PropTypes.number.isRequired,
         }),
         volume: PropTypes.number,
         duration: PropTypes.number,
@@ -386,7 +334,7 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 export {
-    VideoDialogBox as default,
-    VideoDialogBox,
-    VideoDialogBoxSync,
+    AudioDialogBox as default,
+    AudioDialogBox,
+    AudioDialogBoxSync,
 };

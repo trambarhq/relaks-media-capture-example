@@ -3,6 +3,8 @@
 }
 
 .list {
+    margin-bottom: 4em;
+
     LI {
         margin-top: 0.5em;
         margin-bottom: 0.5em;
@@ -112,7 +114,7 @@
                     height: 0.5em;
                     background-color: gray;
 
-                    &.recording {
+                    &.capturing {
                         background-color: green;
                     }
                 }

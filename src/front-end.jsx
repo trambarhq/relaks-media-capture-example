@@ -1,5 +1,7 @@
 import React, { PureComponent } from 'react';
 import { VideoDialogBox, VideoDialogBoxSync } from 'video-dialog-box';
+import { PhotoDialogBox, PhotoDialogBoxSync } from 'photo-dialog-box';
+import { AudioDialogBox, AudioDialogBoxSync } from 'audio-dialog-box';
 
 import 'style.scss';
 
@@ -116,6 +118,20 @@ class FrontEnd extends PureComponent {
                     onCancel: undefined,
                 });
                 break;
+            case 'photo-dialog':
+                DialogBox = PhotoDialogBox;
+                Object.assign(dialogBoxProps, {
+                    onChoose: undefined,
+                    onCancel: undefined,
+                });
+                break;
+            case 'audio-dialog':
+                DialogBox = AudioDialogBox;
+                Object.assign(dialogBoxProps, {
+                    onChoose: undefined,
+                    onCancel: undefined,
+                });
+                break;
         }
         return <DialogBox {...dialogBoxProps} />;
     }
@@ -132,6 +148,10 @@ class FrontEnd extends PureComponent {
                     <li><button id="video-dialog-sync-paused" onClick={this.handleButtonClick}>VideoDialogBoxSync (paused)</button></li>
                     <li><button id="video-dialog-sync-recorded" onClick={this.handleButtonClick}>VideoDialogBoxSync (recorded)</button></li>
                     <li><button id="video-dialog" onClick={this.handleButtonClick}>VideoDialogBox</button></li>
+                </ul>
+                <ul className="list">
+                    <li><button id="photo-dialog" onClick={this.handleButtonClick}>PhotoDialogBox</button></li>
+                    <li><button id="audio-dialog" onClick={this.handleButtonClick}>AudioDialogBox</button></li>
                 </ul>
             </div>
         );
@@ -151,6 +171,9 @@ class FrontEnd extends PureComponent {
         }
         if (evt.video) {
             console.log('video:', evt.video);
+        }
+        if (evt.audio) {
+            console.log('audio:', evt.audio);
         }
     }
 
