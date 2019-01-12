@@ -37,6 +37,7 @@ class FrontEnd extends PureComponent {
         let device = devices[camera];
         let dialogBoxProps = {
             onClose: this.handleDialogClose,
+            onCancel: this.handleDialogClose,
             onCapture: this.handleMediaCapture,
             onChoose: this.handleCameraChoose,
         };
@@ -76,7 +77,7 @@ class FrontEnd extends PureComponent {
             case 'video-dialog-sync-recording':
                 DialogBox = VideoDialogBoxSync;
                 Object.assign(dialogBoxProps, {
-                    status: 'recording',
+                    status: 'capturing',
                     devices: devices,
                     selectedDeviceID: device.id,
                     liveVideo: fakeLive(sample.video),
@@ -98,7 +99,7 @@ class FrontEnd extends PureComponent {
             case 'video-dialog-sync-recorded':
                 DialogBox = VideoDialogBoxSync;
                 Object.assign(dialogBoxProps, {
-                    status: 'recorded',
+                    status: 'captured',
                     devices: devices,
                     selectedDeviceID: device.id,
                     liveVideo: fakeLive(sample.video),
@@ -112,6 +113,7 @@ class FrontEnd extends PureComponent {
                 DialogBox = VideoDialogBox;
                 Object.assign(dialogBoxProps, {
                     onChoose: undefined,
+                    onCancel: undefined,
                 });
                 break;
         }

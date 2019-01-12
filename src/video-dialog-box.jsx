@@ -370,6 +370,7 @@ if (process.env.NODE_ENV !== 'production') {
             width: PropTypes.number.isRequired,
             height: PropTypes.number.isRequired,
         }),
+        volume: PropTypes.number,
         duration: PropTypes.number,
         devices: PropTypes.arrayOf(PropTypes.shape({
             id: PropTypes.string,

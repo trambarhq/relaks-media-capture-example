@@ -6,6 +6,7 @@
     "watch": "webpack --watch",
     "build": "webpack",
     "start": "webpack-dev-server && exit 0",
+    "start-https": "webpack-dev-server --host 0.0.0.0 --https && exit 0",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
