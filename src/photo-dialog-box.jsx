@@ -26,7 +26,6 @@ class PhotoDialogBox extends AsyncComponent {
             onAccept: this.handleAccept,
             onCancel: this.handleCancel,
         };
-        meanwhile.show(<PhotoDialogBoxSync {...props} />);
         this.capture.activate();
         do {
             props.status = this.capture.status;

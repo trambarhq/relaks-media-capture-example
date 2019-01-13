@@ -28,7 +28,6 @@ class AudioDialogBox extends AsyncComponent {
             onAccept: this.handleAccept,
             onCancel: this.handleCancel,
         };
-        meanwhile.show(<AudioDialogBoxSync {...props} />);
         this.capture.activate();
         do {
             props.status = this.capture.status;
@@ -228,10 +227,7 @@ class AudioDialogBoxSync extends PureComponent {
         } else {
             iconClassName += ' fa-volume-off';
         }
-        let barClassName = 'volume-bar';
-        if (status === 'capturing') {
-            barClassName += ' capturing';
-        }
+        let barClassName = `volume-bar ${status}`;
         return (
             <div className="volume">
                 <i className={iconClassName} />
