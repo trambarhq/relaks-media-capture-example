@@ -3,7 +3,7 @@ Relaks Media Capture Example
 
 In [previous examples](https://github.com/trambarhq/relaks#examples), we used [Relaks](https://github.com/trambarhq/relaks) to facilitate retrieval of remote data. In this example we're going to do something different. We're going to build a component that captures video through a webcam. It's meant to demonstrate that Relaks can be used to solve a broad range of problems. It'll also yield a reusable library that we can employ in future projects.
 
-One way to think of Relaks is that it's React with time added. Where as `render()` produces a picture, `renderAsync()` produces an animation, composed of multiple pictures appearing at different points in time. When we use Relaks to render a page progressively, we're actually creating an animation that looks as follows:
+One way to think of Relaks is that it's React with time. Whereas `render()` produces a picture, `renderAsync()` produces an animation, composed of multiple pictures appearing at different points in time. When we use Relaks to render a page progressively, we're really creating an animation that looks as follows:
 
 * Frame 1: Message indicating the page is loading
 * Frame 2: Page with 60% of the data it needs
@@ -22,13 +22,20 @@ For our video capturing component, we'd create something like this:
 * Frame 64: Duration changes to `01:00`
 * Frame 65: The recorded video (after the user pressed the **Stop** button)
 
-This animation runs for a bit longer, naturally. It's also non-linear. The user can change how it unfolds. Conceptually though, it's not at all different from what we've been creating so far. We're going to employ the same strategy as before: create a regular React component that handles the visual aspects and a Relaks component that handles with the temporal aspects.
+This animation runs for a bit longer, naturally. It's also non-linear. The user can change how it unfolds. Conceptually though, it's not at all different from what we've been creating so far. We're going to employ the same strategy as before: create a regular React component that handles the visual aspects and a Relaks component that handles with the temporal aspects. Meanwhile, the details concerning input devices and video compression will get shoved into a [separate reusable class](https://github.com/trambarhq/relaks-media-capture).
 
-Meanwhile, the details concerning with camera management and video encoding will get shoved into a [separate reusable class](https://github.com/trambarhq/relaks-media-capture).
+* [Getting Started](#getting-started)
+* [Live Demo](#live-demo)
+* [Getting Started](#getting-started)
+* [VideoDialogBoxAsync](#videodialogboxsync)
+* [VideoDialogBox](#videodialogbox)
+* [Relak Media Capture](#relak-media-capture)
+* [Taking Photo](capturing-photo-and-audio)
+* [Final Thoughts](final-thoughts)
 
 ## Live Demo
 
-You can see the example in action [here](https://trambar.io/examples/media-capture/). It's little more than a list of buttons. The first seven brings up the synchronous component in various state, with video files as stand-in for camera input. The last button brings up the asynchronous component, wired up to a real camera.
+You can see the example in action [here](https://trambar.io/examples/media-capture/). It's little more than two lists of buttons. Those in the first list brings up the synchronous part of the video dialog in various state, with video files as stand-in for camera input. Those in the second list activate the fully functional asynchronous components, wired up to a real camera.
 
 ![Screen shot](docs/img/screenshot.jpg)
 
@@ -36,11 +43,11 @@ You can see the example in action [here](https://trambar.io/examples/media-captu
 
 To see the code running in debug mode, first clone this repository. In the working folder, run `npm install`. Once that's done, run `npm run start` to launch [WebPack Dev Server](https://webpack.js.org/configuration/dev-server/). Open a browser window and enter `http://localhost:8080` as the location.
 
-Run `npm run start-https` if you wish to see the example in a different device. Either Chrome or Firefox permit the use of the camera in an insecure page (unless the server is localhost). Therefore WebPack Dev Server needs to employ HTTPS. The browser will still regard the page as suspect. You'll need to confirm that you really want to go there.
+Run `npm run start-https` if you wish to see the example in a different device. Either Chrome or Firefox permit the use of the camera in an insecure page (unless the server is localhost). Therefore WebPack Dev Server needs to use HTTPS. The browser will still regard the page as suspect. You'll need to confirm that you really want to go there.
 
-## VideoDialogBoxAsync
+## VideoDialogBoxSync
 
-The example was built in a sort of backward fashion. `VideoDialogBoxSync` was coded first with the help of dummy props. Once the user interface was finished and the set of necessary props was established, `VideoDialogBox` was written, which supplies these props to its synchronous partner. The code that actually deals with video recording was written last.
+This example was built in a sort of backward fashion. `VideoDialogBoxSync` was coded first with the help of dummy props. Once the user interface was finished and the set of necessary props was established, `VideoDialogBox` was written, which supplies these props to its synchronous partner. The code that actually deals with video recording was written last.
 
 Let us first examine `VideoDialogBoxSync` ([video-dialog-box.jsx](https://github.com/chung-leong/relaks-media-capture-example/blob/master/src/video-dialog-box.jsx#L111)). Its `propTypes` are listed below:
 
@@ -91,17 +98,17 @@ VideoDialogBoxSync.propTypes = {
 }
 ```
 
-The capturing process starts with a status of `acquiring`, when we ask the browser for permission to use the camera. If the user choose not to grant permission, the status changes to `denied`. Otherwise the status becomes `initiating`, which last only a brief moment, before it changes to `previewing`. At this point the video stream is available and we can show the user want he's about to capture.
+The capturing process starts with a status of `acquiring`, when we ask the browser for permission to use the camera. If the user choose not to grant permission, the status changes to `denied`. Otherwise the status becomes `initiating`, which last only a brief moment before it changes to `previewing`. At this point the video stream is available and we can show the user what the camera is seeing.
 
-When the user clicks the **Start** button, the status changes to `capturing`. If he clicks the **Pause** button at some point, the status would change to `paused`. A click on **Resume** changes the status back to `capturing`.
+When the user clicks the **Start** button, the status changes to `capturing`. If he clicks the **Pause** button at some point, the status would change to `paused`. A click on **Resume** would change it back to `capturing`.
 
 When the user finally clicks the **Stop** button, the status becomes `captured`.
 
-The prop `liveVideo` contains a [`MediaStream`](https://developer.mozilla.org/en-US/docs/Web/API/MediaStream) object. It's used to show the live input from the camera. `liveVideo` will change when the user select a different camera. It could also change when the user rotate the device.
+The prop `liveVideo` contains a [`MediaStream`](https://developer.mozilla.org/en-US/docs/Web/API/MediaStream) object. It represents the live input from the camera. When attached to a `<video />` as its [`srcObject`](https://developer.mozilla.org/en-US/docs/Web/API/HTMLMediaElement/srcObject), the element will show the camera input. `liveVideo` will change when the user select a different camera. It could also change when the user rotate the device.
 
-`capturedVideo` and `capturedImage` are the end results of the media capture operation. The latter is used as the video element's "poster".
+`capturedVideo` and `capturedImage` are the end results of the capture operation. The latter is used as a video element's "poster".
 
-`volume` is a number between 0 and 100 indicating the strength of audio from the microphone. It's depicted in a gauge so that the user knows his voice is being picked up.
+`volume` is a number between 0 and 100 indicating the strength of audio coming from the microphone. It's depicted in a gauge so that the user knows his voice is being picked up.
 
 `duration` is the video length in millisecond. It's available only when the status is `capturing`, `captured`, or `paused`.
 
@@ -123,7 +130,7 @@ render() {
 }
 ```
 
-`renderTitle()` is fairly boring. It just draws a `div` with some text:
+`renderTitle()` is fairly boring. It just draws a `div` with some text and an icon:
 
 ```javascript
 renderTitle() {
@@ -348,7 +355,7 @@ VideoDialogBox.propTypes = {
 
 `onClose` is called when the dialog box should close. `onCapture` is called after a video is captured. Simple.
 
-In the constructor we create an instance of `RelaksMediaCapture`. This object will be handling the details of video recording. We want to record both audio and video, with the front-facing camera as the preferred source (i.e. we want it to be the camera initially). We also want the object to monitor the audio volume.
+In the constructor we create an instance of `RelaksMediaCapture`. This object will be handling the details of video recording.
 
 ```javascript
 constructor(props) {
@@ -362,6 +369,8 @@ constructor(props) {
     this.capture = new RelaksMediaCapture(options);
 }
 ```
+
+We want to record both audio and video, with the front-facing camera as the preferred source (i.e. we want it to be the camera initially). We also want the object to monitor the audio volume.
 
 `renderAsync()` is where the main action takes place:
 
@@ -395,13 +404,13 @@ async renderAsync(meanwhile) {
 }
 ```
 
-The first thing we do is set the post-render progressive delay to 50ms. By default, this is `infinity`, meaning calls to `meanwhile.show()` will be ignored once `renderAsync()` has succeeded the first time. The behavior makes sense when we're loading data for a page. It doesn't in this situation. We want `meanwhile.show()` to always show what it's given.
+The first thing we do is set the non-empty progressive delay to 50ms. By default, this is `infinity`, meaning calls to `meanwhile.show()` will be ignored once `renderAsync()` has succeeded the first time. The behavior makes sense when we're loading data for a page. It doesn't in this situation. We want `meanwhile.show()` to always show what it's given.
 
-After that we call `this.capture.activate()` to start the process. Then we enter a do-while loop, in which props for `VideoDialogBoxSync` are continually updated until the capture object is deactivated.
+After that we call `this.capture.activate()` to start the capturing process. Then we enter a do-while loop, in which props for `VideoDialogBoxSync` are continually updated until the capture object is deactivated.
 
 At first glance this loop might seem disconcerting. It looks like a newbie mistake to wait for change to occur in a loop. Due to JavaScript's single-threaded nature, such a loop would cause the browser to lock up--in normal synchronous code. We're dealing with asynchronous code here, however, so the loop is perfectly okay. Babel will magically transform it into proper callback-style JavaScript.
 
-The usefulness of the loop would be more apparent if we imagine that other actions will happen after we've captured the video. Suppose we want to upload the video to the server. We could modify our code in this manner:
+The usefulness of the loop would be more apparent if we imagine that other actions will take place after we've captured the video. Suppose we want to upload the video to the server. We would handle that in the following manner:
 
 ```javascript
 async renderAsync(meanwhile) {
@@ -418,13 +427,13 @@ async renderAsync(meanwhile) {
 
     this.uploader.queue(this.capture.capturedVideo.blob);
     this.uploader.queue(this.capture.capturedImage.blob);
-    this.uploader.start();
+    this.uploader.activate();
     do {
         props.status = this.uploader.status;
         props.uploadProgress = this.uploader.progress;
         meanwhile.show(<VideoDialogBoxSync {...props} />);
         await this.uploader.change();
-    } while(this.uploader.busy);
+    } while(this.uploader.active);
     return <VideoDialogBoxSync {...props} />;
 }
 ```
@@ -446,56 +455,27 @@ async renderAsync(meanwhile) {
 
     this.uploader.queue(this.capture.capturedVideo.blob);
     this.uploader.queue(this.capture.capturedImage.blob);
-    this.uploader.start();
+    this.uploader.activate();
     do {
         /* ... */
         meanwhile.show(<VideoDialogBoxSync {...props} />);
         await this.uploader.change();
-    } while(this.uploader.busy);
+    } while(this.uploader.active);
 
     let { transcodingProgressURL } = this.uploader.result;
     do {
         props.status = 'trancoding';
         props.transcodingProgress = await fetch(transcodingProgressURL);
         meanwhile.show(<VideoDialogBoxSync {...props} />);
-        await delay(5000);
+        await delay(3000);
     } while (props.transcodingProgress < 100);
     return <VideoDialogBoxSync {...props} />;
 }
 ```
 
-Let us imagine a different scenario. Suppose we want to let the user edit the video. The code for the video editor is large so we load it on-demand instead of bundling it with the core application. Doing so is perfectly straight forward:
+As you can see, the use of loops allows us to easily slot in addition steps. The imperative coding style makes the program flow very obvious. Even a stranger should have little problem understanding how things unfold.
 
-```javascript
-async renderAsync(meanwhile) {
-    meanwhile.delay(50, 50);
-    let props = {
-        /* ... */
-    };
-    this.capture.activate();
-    do {
-        /* ... */
-        meanwhile.show(<VideoDialogBoxSync {...props} />);
-        await this.capture.change();
-    } while (this.capture.active);
-
-    props.status = 'importing';
-    meanwhile.show(<VideoDialogBoxSync {...props} />);
-
-    let editorModule = await import('video-editor.jsx' /* webpackChunkName: "video-editor" */);
-    let VideoEditor = editorModule.default;
-    props.status = 'editing';
-    return (
-        <VideoDialogBoxSync {...props}>
-            <VideoEditor video={this.capture.capturedVideo} />
-        </VideoDialogBoxSync>
-    );
-}
-```
-
-ES7 await/async is totally awesome and Relaks let you tap into that awesomeness while developing in React.
-
-Anyway, back to our example. The event handlers of `VideoDialogBox` are all very simple:
+Anyway, back to the actual code of our example. The event handlers of `VideoDialogBox` are all very simple:
 
 ```javascript
 handleStart = (evt) => {
@@ -557,4 +537,30 @@ handleAccept = (evt) => {
 
 Note the call to `this.capture.deactivate()`. This is what breaks the loop.
 
+## Relak Media Capture
+
+Implementation details concerning input devices and video compression are encapsulated in [relaks-media-capture](https://github.com/trambarhq/relaks-media-capture). Since it's supposed to be a reusable library, I'm not going to explain the code in depth. I'll simply note what browser features it relies on and point you to the relevant documentation:
+
+* [Media Stream API](https://developer.mozilla.org/en-US/docs/Web/API/Media_Streams_API) is used to capture video.
+* [MediaStream Recording API](https://developer.mozilla.org/en-US/docs/Web/API/MediaStream_Recording_API) is used to encode video files.
+* The [toBlob()](https://developer.mozilla.org/en-US/docs/Web/API/HTMLCanvasElement/toBlob) or [toDataURL()](https://developer.mozilla.org/en-US/docs/Web/API/HTMLCanvasElement/toDataURL) method of `HTMLCanvasElement` is used to save snapshots.
+* [Web Audio API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Audio_API) is used to monitor audio volume.
+* [`devicechange`](https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices) events of are monitored to detect change in device availability.
+* [`orientationchange`](https://developer.mozilla.org/en-US/docs/Web/Events/orientationchange) events are monitored in order to deal with rotation of a camera in a phone or tablet.
+* [`ended`](https://developer.mozilla.org/en-US/docs/Web/Events/ended) events are monitored in case a camera is unplugged during recording.
+
+## Taking Photo
+
+Letting a user taking a picture of himself is probably a more common feature in web applications than video capturing. We can accomplish that by stripping down `VideoDialogBox`. `PhotoDialogBox` ([photo-dialog-box.jsx](https://github.com/chung-leong/relaks-media-capture-example/blob/master/src/photo-dialog-box.jsx)) is the result.
+
+## Final Thoughts
+
+I hope this example has lent you new insights into Relaks. As was said earlier, Relaks is React wih time. It lets you tap into the power of ES7 async/await, a feature that greatly simplifies management of asynchronous operations.
+
+Generally, it's advisable to separate the visual aspects of a component from its temporal aspects. Juggling three dimensions (possibly four) at once is just too hard. Delegating the x, y, and z to a regular React component while a Relaks component manages what occur on the t axis makes things more digestible for our brains.
+
 ![Relaks visualized](docs/img/timeline.jpg)
+
+In essence we're leveraging the strength of two programming models. The declarative model of React is an intuitive way of describing visual elements. Meanwhile, the imperative model enabled by ES7 async/await is an intuitive way of describing events unfolding over time.
+
+In an future example, we're going to implement the file uploader that appeared in our hypothetical code. Stay tuned!

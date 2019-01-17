@@ -147,9 +147,9 @@ class FrontEnd extends PureComponent {
                     <li><button id="video-dialog-sync-recording" onClick={this.handleButtonClick}>VideoDialogBoxSync (recording)</button></li>
                     <li><button id="video-dialog-sync-paused" onClick={this.handleButtonClick}>VideoDialogBoxSync (paused)</button></li>
                     <li><button id="video-dialog-sync-recorded" onClick={this.handleButtonClick}>VideoDialogBoxSync (recorded)</button></li>
-                    <li><button id="video-dialog" onClick={this.handleButtonClick}>VideoDialogBox</button></li>
                 </ul>
                 <ul className="list">
+                    <li><button id="video-dialog" onClick={this.handleButtonClick}>VideoDialogBox</button></li>
                     <li><button id="photo-dialog" onClick={this.handleButtonClick}>PhotoDialogBox</button></li>
                     <li><button id="audio-dialog" onClick={this.handleButtonClick}>AudioDialogBox</button></li>
                 </ul>
