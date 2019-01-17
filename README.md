@@ -3,7 +3,7 @@ Relaks Media Capture Example
 
 In [previous examples](https://github.com/trambarhq/relaks#examples), we used [Relaks](https://github.com/trambarhq/relaks) to facilitate retrieval of remote data. In this example we're going to do something different. We're going to build a component that captures video through a webcam. It's meant to demonstrate that Relaks can be used to solve a broad range of problems. It'll also yield a reusable library that we can employ in future projects.
 
-One way to think of Relaks is that it's React with time. Whereas `render()` produces a picture, `renderAsync()` produces an animation, composed of multiple pictures appearing at different points in time. When we use Relaks to render a page progressively, we're really creating an animation that looks as follows:
+One way to think of Relaks is that it is React with time. Whereas `render()` produces a picture, `renderAsync()` produces an animation, composed of multiple pictures appearing at different points in time. When we use Relaks to render a page progressively, we're really creating an animation that looks as follows:
 
 * Frame 1: Message indicating the page is loading
 * Frame 2: Page with 60% of the data it needs
@@ -36,6 +36,8 @@ This animation runs for a bit longer, naturally. It's also non-linear. The user 
 ## Live Demo
 
 You can see the example in action [here](https://trambar.io/examples/media-capture/). It's little more than two lists of buttons. Those in the first list brings up the synchronous part of the video dialog in various state, with video files as stand-in for camera input. Those in the second list activate the fully functional asynchronous components, wired up to a real camera.
+
+`VideoDialogBox` and `AudioDialoBox` will not work in Safari or Edge due to the lack of support for media recording.
 
 ![Screen shot](docs/img/screenshot.jpg)
 
