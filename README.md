@@ -559,7 +559,7 @@ Letting a user taking a picture of himself is probably a more common feature in 
 
 I hope this example has lent you new insights into Relaks. As was said earlier, Relaks is React wih time. It lets you tap into the power of ES7 async/await, a feature that greatly simplifies management of asynchronous operations.
 
-Generally, it's advisable to separate the visual aspects of a component from its temporal aspects. Juggling three dimensions (possibly four) at once is just too hard. Delegating the x, y, and z to a regular React component while a Relaks component manages what occur on the t axis makes things more digestible for our brains.
+Generally it's advisable to separate the visual aspects of a component from its temporal aspects. Juggling three dimensions (possibly four) at once is just too hard. Our brains will have an easier time when a regular React component handles the x, y, and z while a Relaks component manages what occur on the t axis.
 
 ![Relaks visualized](docs/img/timeline.jpg)
 
