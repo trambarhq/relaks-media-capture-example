@@ -63,7 +63,7 @@ class FrontEnd extends PureComponent {
                 Object.assign(dialogBoxProps, {
                     status: 'initiating',
                     devices: devices,
-                    selectedDeviceID: device.id,
+                    chosenDeviceID: device.id,
                 });
                 break;
             case 'video-dialog-sync-previewing':
@@ -71,7 +71,7 @@ class FrontEnd extends PureComponent {
                 Object.assign(dialogBoxProps, {
                     status: 'previewing',
                     devices: devices,
-                    selectedDeviceID: device.id,
+                    chosenDeviceID: device.id,
                     liveVideo: fakeLive(sample.video),
                     volume: 50,
                 });
@@ -81,7 +81,7 @@ class FrontEnd extends PureComponent {
                 Object.assign(dialogBoxProps, {
                     status: 'capturing',
                     devices: devices,
-                    selectedDeviceID: device.id,
+                    chosenDeviceID: device.id,
                     liveVideo: fakeLive(sample.video),
                     duration: 14700,
                     volume: 95,
@@ -92,7 +92,7 @@ class FrontEnd extends PureComponent {
                 Object.assign(dialogBoxProps, {
                     status: 'paused',
                     devices: devices,
-                    selectedDeviceID: device.id,
+                    chosenDeviceID: device.id,
                     liveVideo: fakeLive(sample.video),
                     duration: 14700,
                     volume: 25,
@@ -103,7 +103,7 @@ class FrontEnd extends PureComponent {
                 Object.assign(dialogBoxProps, {
                     status: 'captured',
                     devices: devices,
-                    selectedDeviceID: device.id,
+                    chosenDeviceID: device.id,
                     liveVideo: fakeLive(sample.video),
                     duration: 38500,
                     capturedVideo: sample.video,

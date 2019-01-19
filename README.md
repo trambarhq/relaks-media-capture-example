@@ -22,7 +22,7 @@ For our video capturing component, we'd create something like this:
 * Frame 64: Duration changes to `01:00`
 * Frame 65: The recorded video (after the user pressed the **Stop** button)
 
-This animation runs for a bit longer, naturally. It's also non-linear: the user can affect how it unfolds. Conceptually though, it's not at all different from what we've been creating so far. We're going to employ the same strategy as before: create a regular React component that handles the visual aspects and a Relaks component that handles with the temporal aspects. Meanwhile, the details concerning input devices and video compression will get shoved into a [separate reusable class](https://github.com/trambarhq/relaks-media-capture).
+This animation runs for a bit longer, naturally. It's also non-linear: The user can affect how it unfolds. Conceptually though, it's not at all different from what we've been creating so far. We're going to employ the same strategy as before: create a regular React component that handles the visual aspects and a Relaks component that handles with the temporal aspects. Meanwhile, the details concerning input devices and video compression will get shoved into a [separate reusable class](https://github.com/trambarhq/relaks-media-capture).
 
 * [Getting Started](#getting-started)
 * [Live Demo](#live-demo)
@@ -30,22 +30,22 @@ This animation runs for a bit longer, naturally. It's also non-linear: the user 
 * [VideoDialogBoxAsync](#videodialogboxsync)
 * [VideoDialogBox](#videodialogbox)
 * [Relak Media Capture](#relak-media-capture)
-* [Taking Photo](capturing-photo-and-audio)
-* [Final Thoughts](final-thoughts)
+* [Taking Photo](#taking-photo)
+* [Final Thoughts](#final-thoughts)
 
 ## Live Demo
 
 You can see the example in action [here](https://trambar.io/examples/media-capture/). It's little more than two lists of buttons. Those in the first list bring up the synchronous part of the video dialog in various states, with video files used as stand-in for camera input. Those in the second list activate the fully functional asynchronous components, wired up to a real camera.
 
-Note: `VideoDialogBox` and `AudioDialoBox` will not work in Safari or Edge, due to the lack of support for media recording.
+Note: `VideoDialogBox` and `AudioDialoBox` will not work in Safari or Edge due to the lack of support for media recording.
 
-![Screen shot](docs/img/screenshot.jpg)
+[![Screen shot](docs/img/screenshot.jpg)](https://trambar.io/examples/media-capture/)
 
 ## Getting Started
 
 To see the code running in debug mode, first clone this repository. In the working folder, run `npm install`. Once that's done, run `npm run start` to launch [WebPack Dev Server](https://webpack.js.org/configuration/dev-server/). Open a browser window and enter `http://localhost:8080` as the location.
 
-Run `npm run start-https` if you wish to see the example in a phone or a tablet. Either Chrome or Firefox permits the use of the camera in an insecure page (unless the server is localhost). Therefore WebPack Dev Server needs to use HTTPS. The browser will still regard the page as suspect. You'll need to confirm that you really want to go there.
+Run `npm run start-https` if you wish to see the example in a phone or a tablet. Either Chrome or Firefox permits the use of the camera in an insecure page (unless the server is localhost). WebPack Dev Server therefore needs to use HTTPS. The browser will still regard the page as suspect. You'll need to confirm that you really want to go there.
 
 ## VideoDialogBoxSync
 
@@ -87,7 +87,7 @@ VideoDialogBoxSync.propTypes = {
         id: PropTypes.string,
         label: PropTypes.string,
     })),
-    selectedDeviceID: PropTypes.string,
+    chosenDeviceID: PropTypes.string,
 
     onChoose: PropTypes.func,
     onCancel: PropTypes.func,
@@ -106,7 +106,7 @@ When the user clicks the **Start** button, the status changes to `capturing`. If
 
 When the user finally clicks the **Stop** button, the status becomes `captured`.
 
-The prop `liveVideo` contains a [`MediaStream`](https://developer.mozilla.org/en-US/docs/Web/API/MediaStream) object. It represents the live input from the camera. When attached to a `<video />` as its [`srcObject`](https://developer.mozilla.org/en-US/docs/Web/API/HTMLMediaElement/srcObject), the element will show the camera input. `liveVideo` will change when the user select a different camera. It could also change when the user rotate the device.
+The prop `liveVideo` contains a [`MediaStream`](https://developer.mozilla.org/en-US/docs/Web/API/MediaStream) object. It represents the live input from the camera. When attached to a `<video />` as its [`srcObject`](https://developer.mozilla.org/en-US/docs/Web/API/HTMLMediaElement/srcObject), the element will show the video feed. `liveVideo` will change when the user select a different camera. It could also change when the user rotate the device.
 
 `capturedVideo` and `capturedImage` are the end results of the media capturing operation. The latter is used as a video element's "poster".
 
@@ -114,7 +114,7 @@ The prop `liveVideo` contains a [`MediaStream`](https://developer.mozilla.org/en
 
 `duration` is the video length in millisecond. It's available only when the status is `capturing`, `captured`, or `paused`.
 
-`devices` is a list of cameras that the user's computer is equipped with. It can change when the user plug in a new device. `selectedDeviceID` is the ID of the selected device.
+`devices` is a list of cameras that the user's computer is equipped with. It can change when the user plug in a new device. `chosenDeviceID` is the ID of the selected device.
 
 Let us look at the component's `render()` method. It's fairly simple. It delegates most of its functionalities to other methods:
 
@@ -200,13 +200,13 @@ renderVideo() {
     }
 }
 ```
-We draw some placeholder graphics when we don't have the live video feed. Once we have it we show what the camera is seeing, until we have captured a video.
+We draw some placeholder graphics when we don't have yet the live video feed. Once we have it we show that until we have captured a video.
 
 `LiveVideo` ([`live-video.jsx`](https://github.com/chung-leong/relaks-media-capture-example/blob/master/src/live-video.jsx)) doesn't do anything aside from rendering a `video` element. It's a workaround for React's inability to set an element's `srcObject`.
 
 The live video needs to be muted to avoid audio feedback.
 
-Because the resolution of the camera could be larger than size of the browser, we need to force a dimension on the video element so the dialog box does not spill out. The calculation is done in `getDerivedStateFromProps()`:
+Because the resolution of the camera could be larger than size of the browser, we need to impose a size on the video element so the dialog box does not spill out. The calculation is done in `getDerivedStateFromProps()`:
 
 ```javascript
 static getDerivedStateFromProps(props, state) {
@@ -249,13 +249,13 @@ On the left side of the dialog box we have either the duration or device selecti
 
 ```javascript
 renderDeviceMenu() {
-    let { devices, selectedDeviceID, duration } = this.props;
+    let { devices, chosenDeviceID, duration } = this.props;
     if (!devices || devices.length <= 1) {
         return <div className="devices" />;
     }
     return (
         <div className="devices">
-            <select onChange={this.handleDeviceChange} value={selectedDeviceID}>
+            <select onChange={this.handleDeviceChange} value={chosenDeviceID}>
             {
                 devices.map((device, i) => {
                     let label = device.label.replace(/\([0-9a-f]{4}:[0-9a-f]{4}\)/, '');
@@ -357,7 +357,7 @@ VideoDialogBox.propTypes = {
 
 `onClose` is called when the dialog box should close. `onCapture` is called after a video is captured. Simple.
 
-In the constructor we create an instance of `RelaksMediaCapture`. This object will be handling the details of video recording.
+In the constructor we create an instance of `RelaksMediaCapture`. This object will deal with the particulars of video recording.
 
 ```javascript
 constructor(props) {
@@ -372,7 +372,7 @@ constructor(props) {
 }
 ```
 
-We want to record both audio and video, with the front-facing camera as the preferred source (i.e. we want its input initially). We also want the object to monitor the audio volume.
+We want to record both audio and video, with the front-facing camera as the preferred source. We also want the object to monitor the audio volume.
 
 `renderAsync()` is where the main action takes place:
 
@@ -393,7 +393,7 @@ async renderAsync(meanwhile) {
     do {
         props.status = this.capture.status;
         props.devices = this.capture.devices;
-        props.selectedDeviceID = this.capture.selectedDeviceID;
+        props.chosenDeviceID = this.capture.chosenDeviceID;
         props.liveVideo = this.capture.liveVideo;
         props.duration = this.capture.duration;
         props.volume = this.capture.volume;
@@ -406,11 +406,11 @@ async renderAsync(meanwhile) {
 }
 ```
 
-The first thing we do is set the non-empty progressive delay to 50ms. By default, this is `infinity`, meaning calls to `meanwhile.show()` will be ignored once `renderAsync()` has succeeded once. The behavior makes sense when we're loading data for a page. It doesn't in this situation. We want `meanwhile.show()` to always show what it's given.
+The first thing we do is set the non-empty progressive delay to 50ms. By default, this is `infinity`, meaning calls to `meanwhile.show()` will be ignored once `renderAsync()` has succeeded. The behavior makes sense when we're loading data for a page. It doesn't in this situation. We want `meanwhile.show()` to always show what it's given.
 
 After that we call `this.capture.activate()` to start the capturing process. Then we enter a do-while loop, in which props for `VideoDialogBoxSync` are continually updated until the capture object is deactivated.
 
-At first glance this loop might seem disconcerting. It looks like a newbie mistake to wait for change to occur in a loop. Due to JavaScript's single-threaded nature, such a loop would cause the browser to lock up--in normal synchronous code. We're dealing with asynchronous code here, however, so the loop is perfectly okay. Babel will magically transform it into proper callback-style JavaScript.
+At first glance this loop might seem disconcerting. It seems like a newbie mistake to wait for change to occur in a loop. Due to JavaScript's single-threaded nature, such a loop would cause the browser to lock up--in normal synchronous code. We're dealing with asynchronous code here, however, so the loop is perfectly okay. Babel will magically transform it into proper callback-style JavaScript.
 
 The usefulness of the loop would be more apparent if we imagine that other actions will take place after we've captured the video. Suppose we want to upload the video to the server. We would handle that in the following manner:
 
@@ -506,7 +506,7 @@ handleChoose = (evt) => {
 }
 ```
 
-When the user clicks **Start** we tell our media-capture object to start recording and take a snapshot of the camera input. When he clicks **Stop**, we tell it to stop. When clicks **Pause**, we tell it to pause. And so on.
+When the user clicks **Start** we tell our media-capture object to start recording and take a snapshot of the video feed. When he clicks **Stop**, we tell it to stop. When clicks **Pause**, we tell it to pause. And so on.
 
 `handleAccept()` has a few more lines, but isn't particular complicated:  
 

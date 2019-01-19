@@ -30,7 +30,7 @@ class PhotoDialogBox extends AsyncComponent {
         do {
             props.status = this.capture.status;
             props.devices = this.capture.devices;
-            props.selectedDeviceID = this.capture.selectedDeviceID;
+            props.chosenDeviceID = this.capture.chosenDeviceID;
             props.liveVideo = this.capture.liveVideo;
             props.capturedImage = this.capture.capturedImage;
             meanwhile.show(<PhotoDialogBoxSync {...props} />);
@@ -197,13 +197,13 @@ class PhotoDialogBoxSync extends PureComponent {
     }
 
     renderDeviceMenu() {
-        let { devices, selectedDeviceID, duration } = this.props;
+        let { devices, chosenDeviceID, duration } = this.props;
         if (!devices || devices.length <= 1) {
             return <div className="devices" />;
         }
         return (
             <div className="devices">
-                <select onChange={this.handleDeviceChange} value={selectedDeviceID}>
+                <select onChange={this.handleDeviceChange} value={chosenDeviceID}>
                 {
                     devices.map((device, i) => {
                         let label = device.label.replace(/\([0-9a-f]{4}:[0-9a-f]{4}\)/, '');
@@ -294,7 +294,7 @@ if (process.env.NODE_ENV !== 'production') {
             id: PropTypes.string,
             label: PropTypes.string,
         })),
-        selectedDeviceID: PropTypes.string,
+        chosenDeviceID: PropTypes.string,
 
         onChoose: PropTypes.func,
         onCancel: PropTypes.func,
