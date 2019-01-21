@@ -346,7 +346,7 @@ That's it. `VideoDialogBoxSync` is pretty much a bog standard React component. I
 
 ## VideoDialogBox
 
-`VideoDialogBox` expects far fewer props: just two handlers:
+`VideoDialogBox` [`video-dialog-box.jsx`](https://github.com/trambarhq/relaks-media-capture-example/blob/master/src/video-dialog-box.jsx#L6) expects far fewer props: just two handlers:
 
 ```javascript
 VideoDialogBox.propTypes = {
@@ -553,7 +553,7 @@ Implementation details concerning input devices and video compression are encaps
 
 ## Taking Photo
 
-Letting a user taking a picture of himself is probably a more common feature in web applications than video capturing. We can accomplish that by stripping down `VideoDialogBox`. `PhotoDialogBox` ([photo-dialog-box.jsx](https://github.com/chung-leong/relaks-media-capture-example/blob/master/src/photo-dialog-box.jsx)) is the result.
+Letting a user take a picture of himself is probably a more common feature in web applications than video capturing. We can easily accomplish that by stripping down `VideoDialogBox`. `PhotoDialogBox` ([photo-dialog-box.jsx](https://github.com/chung-leong/relaks-media-capture-example/blob/master/src/photo-dialog-box.jsx)) is the result.
 
 ## Final Thoughts
 
