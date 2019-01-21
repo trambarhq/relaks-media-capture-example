@@ -83,14 +83,14 @@ class AudioDialogBox extends AsyncComponent {
 
     handleAccept = (evt) => {
         let { onCapture } = this.props;
-        let { capturedVideo, capturedImage } = this.capture;
+        let { capturedAudio } = this.capture;
         if (onCapture) {
             let evt = {
                 type: 'capture',
                 target: this,
                 audio: {
-                    blob: capturedVideo.blob,
-                    duration: capturedVideo.duration,
+                    blob: capturedAudio.blob,
+                    duration: capturedAudio.duration,
                 },
             };
             onCapture(evt);
