@@ -1,137 +1,113 @@
-import React, { PureComponent } from 'react';
-import { AsyncComponent } from 'relaks';
+import React, { useState, useEffect } from 'react';
+import Relaks, { useProgress } from 'relaks/hooks';
+import { useSizeConstraint } from 'utils';
 import RelaksMediaCapture from 'relaks-media-capture';
 import LiveVideo from 'live-video';
 
-class PhotoDialogBox extends AsyncComponent {
-    static displayName = 'PhotoDialogBoxAsync';
-
-    constructor(props) {
-        super(props);
-        let options = {
+async function PhotoDialogBox(props) {
+    const { onClose, onCapture } = props;
+    const [ capture ] = useState(() => {
+        return new RelaksMediaCapture({
             video: true,
             audio: false,
             preferredDevice: 'front',
             captureImageOnly: true,
+        });
+    });
+    const [ show ] = useProgress(50, 50);
+    const target = { func: PhotoDialogBox, props };
+
+    useEffect(() => {
+        capture.activate();
+
+        return () => {
+            capture.deactivate();
         };
-        this.capture = new RelaksMediaCapture(options);
-    }
+    }, []);
 
-    async renderAsync(meanwhile) {
-        meanwhile.delay(50, 50);
-        let props = {
-            onSnap: this.handleSnap,
-            onClear: this.handleClear,
-            onChoose: this.handleChoose,
-            onAccept: this.handleAccept,
-            onCancel: this.handleCancel,
-        };
-        this.capture.activate();
-        do {
-            props.status = this.capture.status;
-            props.devices = this.capture.devices;
-            props.chosenDeviceID = this.capture.chosenDeviceID;
-            props.liveVideo = this.capture.liveVideo;
-            props.capturedImage = this.capture.capturedImage;
-            meanwhile.show(<PhotoDialogBoxSync {...props} />);
-            await this.capture.change();
-        } while (this.capture.active);
-        return <PhotoDialogBoxSync {...props} />;
-    }
-
-    componentWillUnmount() {
-        super.componentWillUnmount();
-        this.capture.deactivate();
-    }
-
-    handleSnap = (evt) => {
-        this.capture.snap();
-    }
-
-    handleClear = (evt) => {
-        this.capture.clear();
-    }
-
-    handleChoose = (evt) => {
-        this.capture.choose(evt.id);
-    }
-
-    handleCancel = (evt) => {
-        let { onClose } = this.props;
+    const handleSnap = (evt) => {
+        capture.snap();
+    };
+    const handleClear = (evt) => {
+        capture.clear();
+    };
+    const handleChoose = (evt) => {
+        capture.choose(evt.id);
+    };
+    const handleCancel = (evt) => {
         if (onClose) {
             onClose({
                 type: 'cancel',
-                target: this,
-            })
+                target,
+            });
         }
-    }
-
-    handleAccept = (evt) => {
-        let { onCapture } = this.props;
-        let { capturedImage } = this.capture;
+    };
+    const handleAccept = (evt) => {
+        const { capturedImage } = capture;
         if (onCapture) {
-            let evt = {
+            onCapture({
                 type: 'capture',
-                target: this,
+                target,
                 image: {
                     blob: capturedImage.blob,
                     width: capturedImage.width,
                     height: capturedImage.height,
                 },
-            };
-            onCapture(evt);
+            });
         }
-        this.capture.deactivate();
-        this.handleCancel();
-    }
+        capture.deactivate();
+        handleCancel();
+    };
+
+    const handlers = {
+        onSnap: handleSnap,
+        onClear: handleClear,
+        onChoose: handleChoose,
+        onAccept: handleAccept,
+        onCancel: handleCancel,
+    };
+    do {
+        const sprops = {
+            status: capture.status,
+            devices: capture.devices,
+            chosenDeviceID: capture.chosenDeviceID,
+            liveVideo: capture.liveVideo,
+            capturedImage: capture.capturedImage,
+        };
+        show(<PhotoDialogBoxSync {...sprops} {...handlers} />);
+        await capture.change();
+    } while (capture.active);
 }
 
-class PhotoDialogBoxSync extends PureComponent {
-    static displayName = 'PhotoDialogBoxSync';
+function PhotoDialogBoxSync(props) {
+    const { status, liveVideo, capturedImage } = props;
+    const { devices, chosenDeviceID } = props;
+    const { onCancel, onChoose, onSnap, onClear, onAccept } = props;
+    const size = useSizeConstraint(liveVideo, { width: 320, height: 240 });
+    const target = { func: PhotoDialogBoxSync, props };
 
-    constructor(props) {
-        super(props);
-        this.state = {
-            viewportWidth: 320,
-            viewportHeight: 240,
-        };
-    }
-
-    static getDerivedStateFromProps(props, state) {
-        let { liveVideo } = props;
-        if (liveVideo) {
-            let html = document.body.parentNode;
-            let viewportWidth = liveVideo.width;
-            let viewportHeight = liveVideo.height;
-            let availableWidth = html.clientWidth - 50;
-            let availableHeight = html.clientHeight - 100;
-            if (viewportWidth > availableWidth) {
-                viewportHeight = Math.round(viewportHeight * availableWidth / viewportWidth);
-                viewportWidth = availableWidth;
-            }
-            if (viewportHeight > availableHeight) {
-                viewportWidth = Math.round(viewportWidth * availableHeight / viewportHeight);
-                viewportHeight = availableHeight;
-            }
-            return { viewportWidth, viewportHeight };
+    const handleDeviceChange = (evt) => {
+        const id = evt.target.value;
+        if (onChoose) {
+            onChoose({
+                type: 'choose',
+                target,
+                id,
+            });
         }
-        return null;
-    }
+    };
 
-    render() {
-        return (
-            <div className="overlay">
-                <div className="dialog-box video">
-                    {this.renderTitle()}
-                    {this.renderViewport()}
-                    {this.renderControls()}
-                </div>
+    return (
+        <div className="overlay">
+            <div className="dialog-box video">
+                {renderTitle()}
+                {renderViewport()}
+                {renderControls()}
             </div>
-        );
-    }
+        </div>
+    );
 
-    renderTitle() {
-        let { onCancel } = this.props;
+    function renderTitle() {
         return (
             <div className="title">
                 Image Capture
@@ -140,28 +116,16 @@ class PhotoDialogBoxSync extends PureComponent {
         );
     }
 
-    renderViewport() {
-        let { status } = this.props;
-        let { viewportWidth, viewportHeight } = this.state;
-        let style = {
-            width: viewportWidth,
-            height: viewportHeight,
-        };
-        let className = `video-viewport ${status}`;
+    function renderViewport() {
+        const classNames = [ 'video-viewport', status ];
         return (
-            <div className={className} style={style}>
-                {this.renderVideo()}
+            <div className={classNames.join(' ')} style={size}>
+                {renderVideo()}
             </div>
         );
     }
 
-    renderVideo() {
-        let { status, liveVideo, capturedImage } = this.props;
-        let { viewportWidth, viewportHeight } = this.state;
-        let videoStyle = {
-            width: viewportWidth,
-            height: viewportHeight,
-        };
+    function renderVideo() {
         switch (status) {
             case 'acquiring':
                 return (
@@ -181,55 +145,40 @@ class PhotoDialogBoxSync extends PureComponent {
             case 'previewing':
             case 'capturing':
             case 'paused':
-                return <LiveVideo srcObject={liveVideo.stream} style={videoStyle} muted />;
+                return <LiveVideo srcObject={liveVideo.stream} style={size} muted />;
             case 'captured':
-                return <img src={capturedImage.url} style={videoStyle} />;
+                return <img src={capturedImage.url} style={size} />;
         }
     }
 
-    renderControls() {
+    function renderControls() {
         return (
             <div className="controls">
-                {this.renderDeviceMenu()}
-                {this.renderButtons()}
+                {renderDeviceMenu()}
+                {renderButtons()}
             </div>
         )
     }
 
-    renderDeviceMenu() {
-        let { devices, chosenDeviceID, duration } = this.props;
+    function renderDeviceMenu() {
         if (!devices || devices.length <= 1) {
             return <div className="devices" />;
         }
         return (
             <div className="devices">
-                <select onChange={this.handleDeviceChange} value={chosenDeviceID}>
-                {
-                    devices.map((device, i) => {
-                        let label = device.label.replace(/\([0-9a-f]{4}:[0-9a-f]{4}\)/, '');
-                        return <option value={device.id} key={i}>{label}</option>;
-                    })
-                }
+                <select onChange={handleDeviceChange} value={chosenDeviceID}>
+                    {devices.map(renderDeviceMenuOption)}
                 </select>
             </div>
         );
     }
 
-    renderDuration() {
-        let { duration } = this.props;
-        if (duration === undefined) {
-            return null;
-        }
-        let seconds = duration / 1000;
-        let hh = Math.floor(seconds / 3600).toString().padStart(2, '0');
-        let mm = Math.floor(seconds / 60 % 60).toString().padStart(2, '0');
-        let ss = Math.floor(seconds % 60).toString().padStart(2, '0');
-        return <div className="duration">{`${hh}:${mm}:${ss}`}</div>
+    function renderDeviceMenuOption(device, i) {
+        const label = device.label.replace(/\([0-9a-f]{4}:[0-9a-f]{4}\)/, '');
+        return <option value={device.id} key={i}>{label}</option>;
     }
 
-    renderButtons() {
-        let { status } = this.props;
-        let { onCancel, onSnap, onClear, onAccept } = this.props;
+    function renderButtons() {
         switch (status) {
             case 'acquiring':
             case 'denied':
@@ -250,62 +199,13 @@ class PhotoDialogBoxSync extends PureComponent {
                 );
         }
     }
+};
 
-    handleDeviceChange = (evt) => {
-        let { onChoose } = this.props;
-        let id = evt.target.value;
-        if (onChoose) {
-            onChoose({
-                type: 'choose',
-                target: this,
-                id,
-            });
-        }
-    }
-}
-
-if (process.env.NODE_ENV !== 'production') {
-    const PropTypes = require('prop-types');
-    PhotoDialogBox.propTypes = {
-        onClose: PropTypes.func,
-        onCapture: PropTypes.func,
-    };
-
-    PhotoDialogBoxSync.propTypes = {
-        status: PropTypes.oneOf([
-            'acquiring',
-            'denied',
-            'initiating',
-            'previewing',
-            'captured',
-        ]),
-        liveVideo: PropTypes.shape({
-            stream: PropTypes.instanceOf(MediaStream).isRequired,
-            width: PropTypes.number.isRequired,
-            height: PropTypes.number.isRequired,
-        }),
-        capturedImage: PropTypes.shape({
-            url: PropTypes.string.isRequired,
-            blob: PropTypes.instanceOf(Blob).isRequired,
-            width: PropTypes.number.isRequired,
-            height: PropTypes.number.isRequired,
-        }),
-        devices: PropTypes.arrayOf(PropTypes.shape({
-            id: PropTypes.string,
-            label: PropTypes.string,
-        })),
-        chosenDeviceID: PropTypes.string,
-
-        onChoose: PropTypes.func,
-        onCancel: PropTypes.func,
-        onSnap: PropTypes.func,
-        onClear: PropTypes.func,
-        onAccept: PropTypes.func,
-    };
-}
+const asyncComponent = Relaks(PhotoDialogBox);
+const syncComponent = PhotoDialogBoxSync;
 
 export {
-    PhotoDialogBox as default,
-    PhotoDialogBox,
-    PhotoDialogBoxSync,
+    asyncComponent as default,
+    asyncComponent as PhotoDialogBox,
+    syncComponent as PhotoDialogBoxSync,
 };

@@ -1,47 +1,54 @@
-import React, { PureComponent } from 'react';
+import React, { useState } from 'react';
 import { VideoDialogBox, VideoDialogBoxSync } from 'video-dialog-box';
 import { PhotoDialogBox, PhotoDialogBoxSync } from 'photo-dialog-box';
 import { AudioDialogBox, AudioDialogBoxSync } from 'audio-dialog-box';
 
 import 'style.scss';
 
-class FrontEnd extends PureComponent {
-    static displayName = 'FrontEnd';
+function FrontEnd(props) {
+    const [ selection, setSelection ] = useState(null);
+    const [ camera, setCamera ] = useState(0);
 
-    constructor(props) {
-        super(props);
-        this.state = {
-            selection: null,
-            camera: 0,
-        };
-    }
+    const handleButtonClick = (evt) => {
+        setSelection(evt.target.id);
+    };
+    const handleDialogClose = (evt) => {
+        setSelection(null);
+    };
+    const handleMediaCapture = (evt) => {
+        if (evt.image) {
+            console.log('image:', evt.image);
+        }
+        if (evt.video) {
+            console.log('video:', evt.video);
+        }
+        if (evt.audio) {
+            console.log('audio:', evt.audio);
+        }
+    };
+    const handleCameraChoose = (evt) => {
+        let index = devices.findIndex(device => device.id === evt.id);
+        setCamera(index);
+    };
 
-    /**
-     * Render the application
-     *
-     * @return {VNode}
-     */
-    render() {
-        return (
-            <div>
-                {this.renderButtons()}
-                {this.renderDialogBox()}
-            </div>
-        );
-    }
+    return (
+        <div>
+            {renderButtons()}
+            {renderDialogBox()}
+        </div>
+    );
 
-    renderDialogBox() {
-        let { selection, camera } = this.state;
+    function renderDialogBox() {
         if (!selection) {
             return null;
         }
-        let sample = samples[camera];
-        let device = devices[camera];
-        let dialogBoxProps = {
-            onClose: this.handleDialogClose,
-            onCancel: this.handleDialogClose,
-            onCapture: this.handleMediaCapture,
-            onChoose: this.handleCameraChoose,
+        const sample = samples[camera];
+        const device = devices[camera];
+        const dialogBoxProps = {
+            onClose: handleDialogClose,
+            onCancel: handleDialogClose,
+            onCapture: handleMediaCapture,
+            onChoose: handleCameraChoose,
         };
         let DialogBox;
         switch (selection) {
@@ -136,56 +143,29 @@ class FrontEnd extends PureComponent {
         return <DialogBox {...dialogBoxProps} />;
     }
 
-    renderButtons() {
+    function renderButtons() {
         return (
             <div>
                 <ul className="list">
-                    <li><button id="video-dialog-sync-acquiring" onClick={this.handleButtonClick}>VideoDialogBoxSync (acquiring)</button></li>
-                    <li><button id="video-dialog-sync-denied" onClick={this.handleButtonClick}>VideoDialogBoxSync (denied)</button></li>
-                    <li><button id="video-dialog-sync-initiating" onClick={this.handleButtonClick}>VideoDialogBoxSync (initiating)</button></li>
-                    <li><button id="video-dialog-sync-previewing" onClick={this.handleButtonClick}>VideoDialogBoxSync (previewing)</button></li>
-                    <li><button id="video-dialog-sync-recording" onClick={this.handleButtonClick}>VideoDialogBoxSync (recording)</button></li>
-                    <li><button id="video-dialog-sync-paused" onClick={this.handleButtonClick}>VideoDialogBoxSync (paused)</button></li>
-                    <li><button id="video-dialog-sync-recorded" onClick={this.handleButtonClick}>VideoDialogBoxSync (recorded)</button></li>
+                    <li><button id="video-dialog-sync-acquiring" onClick={handleButtonClick}>VideoDialogBoxSync (acquiring)</button></li>
+                    <li><button id="video-dialog-sync-denied" onClick={handleButtonClick}>VideoDialogBoxSync (denied)</button></li>
+                    <li><button id="video-dialog-sync-initiating" onClick={handleButtonClick}>VideoDialogBoxSync (initiating)</button></li>
+                    <li><button id="video-dialog-sync-previewing" onClick={handleButtonClick}>VideoDialogBoxSync (previewing)</button></li>
+                    <li><button id="video-dialog-sync-recording" onClick={handleButtonClick}>VideoDialogBoxSync (recording)</button></li>
+                    <li><button id="video-dialog-sync-paused" onClick={handleButtonClick}>VideoDialogBoxSync (paused)</button></li>
+                    <li><button id="video-dialog-sync-recorded" onClick={handleButtonClick}>VideoDialogBoxSync (recorded)</button></li>
                 </ul>
                 <ul className="list">
-                    <li><button id="video-dialog" onClick={this.handleButtonClick}>VideoDialogBox</button></li>
-                    <li><button id="photo-dialog" onClick={this.handleButtonClick}>PhotoDialogBox</button></li>
-                    <li><button id="audio-dialog" onClick={this.handleButtonClick}>AudioDialogBox</button></li>
+                    <li><button id="video-dialog" onClick={handleButtonClick}>VideoDialogBox</button></li>
+                    <li><button id="photo-dialog" onClick={handleButtonClick}>PhotoDialogBox</button></li>
+                    <li><button id="audio-dialog" onClick={handleButtonClick}>AudioDialogBox</button></li>
                 </ul>
             </div>
         );
     }
-
-    handleButtonClick = (evt) => {
-        this.setState({ selection: evt.target.id });
-    }
-
-    handleDialogClose = (evt) => {
-        this.setState({ selection: null });
-    }
-
-    handleMediaCapture = (evt) => {
-        if (evt.image) {
-            console.log('image:', evt.image);
-        }
-        if (evt.video) {
-            console.log('video:', evt.video);
-        }
-        if (evt.audio) {
-            console.log('audio:', evt.audio);
-        }
-    }
-
-    handleCameraChoose = (evt) => {
-        let index = devices.findIndex((device) => {
-            return (device.id === evt.id);
-        });
-        this.setState({ camera: index });
-    }
 }
 
-let devices = [
+const devices = [
     {
         id: 'camera0',
         label: 'Camera 1',
@@ -195,8 +175,7 @@ let devices = [
         label: 'Camera 2',
     }
 ];
-
-let samples = [
+const samples = [
     {
         video: {
             url: require('../assets/sample1.mp4'),
@@ -230,8 +209,8 @@ loadSamples(samples);
 
 async function loadSamples(samples) {
     for (let sample of samples) {
-        let videoRes = await fetch(sample.video.url);
-        let imageRes = await fetch(sample.image.url);
+        const videoRes = await fetch(sample.video.url);
+        const imageRes = await fetch(sample.image.url);
         sample.video.blob = await videoRes.blob();
         sample.image.blob = await imageRes.blob();
     }
@@ -243,6 +222,10 @@ function fakeLive(video) {
         width: video.width,
         height: video.height,
     };
+}
+
+if (process.env.NODE_ENV !== 'production') {
+    require('./props');
 }
 
 export {

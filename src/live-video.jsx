@@ -1,46 +1,32 @@
-import React, { PureComponent } from 'react';
+import React, { useRef, useEffect } from 'react';
 
-class LiveVideo extends PureComponent {
-    render() {
-        let { srcObject, ...props } = this.props;
-        if (srcObject instanceof Blob) {
-            // srcObject is supposed to accept a blob but that's not
-            // currently supported by the browsers
-            props.src = this.blobURL = URL.createObjectURL(srcObject);
+function LiveVideo(props) {
+    const { srcObject, ...vprops } = props;
+    const node = useRef();
+
+    useEffect(() => {
+        if (srcObject instanceof MediaStream) {
+            node.current.srcObject = srcObject;
+            node.current.play();
+            return () => {
+                node.current.pause();
+                node.current.srcObject = null;
+            };
+        } else if (srcObject instanceof Blob) {
+            const url = URL.createObjectURL(srcObject);
+            node.current.src = url;
+            node.current.oncanplay = function(evt) {
+                evt.target.play();
+            };
+            return () => {                
+                node.current.src = '';
+                node.current.oncanplay = null;
+                URL.revokeObjectURL(url);
+            };
         }
-        return <video ref={this.setNode} {...props} />
-    }
+    }, [ srcObject ]);
 
-    setNode = (node) => {
-        this.node = node;
-    }
-
-    setSrcObject() {
-        let { srcObject } = this.props;
-        if (srcObject) {
-            if (!(srcObject instanceof Blob)) {
-                this.node.srcObject = srcObject;
-            }
-            this.node.play();
-        }
-    }
-
-    componentDidMount() {
-        this.setSrcObject();
-    }
-
-    componentDidUpdate(prevProps, prevState) {
-        let { srcObject } = this.props;
-        if (prevProps.srcObject !== srcObject) {
-            this.setSrcObject();
-        }
-    }
-
-    componentWillUnmount() {
-        if (this.blobURL) {
-            URL.revokeObjectURL(this.blobURL);
-        }
-    }
+    return <video ref={node} {...vprops} />;
 }
 
 export {
