@@ -1,19 +1,19 @@
-import React, { useState, useEffect } from 'react';
-import Relaks, { useProgress } from 'relaks/hooks';
-import { useSizeConstraint } from 'utils';
+import React, { useMemo, useEffect, useCallback } from 'react';
+import Relaks, { useProgress } from 'relaks';
 import RelaksMediaCapture from 'relaks-media-capture';
 import LiveVideo from 'live-video';
+import { constrainSize } from 'utils';
 
 async function VideoDialogBox(props) {
     const { onClose, onCapture } = props;
-    const [ capture ] = useState(() => {
+    const capture = useMemo(() => {
         return new RelaksMediaCapture({
             video: true,
             audio: true,
             preferredDevice: 'front',
             watchVolume: true,
         });
-    });
+    }, []);
     const [ show ] = useProgress(50, 50);
     const target = { func: VideoDialogBox, props };
 
@@ -23,36 +23,36 @@ async function VideoDialogBox(props) {
         return () => {
             capture.deactivate();
         };
-    }, []);
+    }, [ capture ]);
 
-    const handleStart = (evt) => {
+    const handleStart = useCallback((evt) => {
         capture.start();
         capture.snap();
-    };
-    const handleStop = (evt) => {
+    });
+    const handleStop = useCallback((evt) => {
         capture.stop();
-    };
-    const handlePause = (evt) => {
+    });
+    const handlePause = useCallback((evt) => {
         capture.pause();
-    };
-    const handleResume = (evt) => {
+    });
+    const handleResume = useCallback((evt) => {
         capture.resume();
-    };
-    const handleClear = (evt) => {
+    });
+    const handleClear = useCallback((evt) => {
         capture.clear();
-    };
-    const handleChoose = (evt) => {
-        capture.choose(evt.id);
-    };
-    const handleCancel = (evt) => {
+    });
+    const handleDeviceChange = useCallback((evt) => {
+        capture.choose(evt.target.value);
+    });
+    const handleCancel = useCallback((evt) => {
         if (onClose) {
             onClose({
                 type: 'cancel',
                 target,
             });
         }
-    };
-    const handleAccept = (evt) => {
+    });
+    const handleAccept = useCallback((evt) => {
         const { capturedVideo, capturedImage } = capture;
         if (onCapture) {
             onCapture({
@@ -73,81 +73,48 @@ async function VideoDialogBox(props) {
         }
         capture.deactivate();
         handleCancel();
-    };
+    });
 
-    const handlers = {
-        onStart: handleStart,
-        onStop: handleStop,
-        onPause: handlePause,
-        onResume: handleResume,
-        onClear: handleClear,
-        onChoose: handleChoose,
-        onAccept: handleAccept,
-        onCancel: handleCancel,
-    };
     do {
-        const sprops = {
-            status: capture.status,
-            devices: capture.devices,
-            chosenDeviceID: capture.chosenDeviceID,
-            liveVideo: capture.liveVideo,
-            duration: capture.duration,
-            volume: capture.volume,
-            capturedImage: capture.capturedImage,
-            capturedVideo: capture.capturedVideo,
-        };
-        show(<VideoDialogBoxSync {...sprops} {...handlers} />);
+        render();
         await capture.change();
     } while (capture.active);
-}
 
-function VideoDialogBoxSync(props) {
-    const { status, liveVideo, capturedVideo, capturedImage } = props;
-    const { devices, chosenDeviceID, duration, volume } = props;
-    const { onCancel, onChoose, onStart, onPause, onResume, onStop, onClear, onAccept } = props;
-    const size = useSizeConstraint(liveVideo, { width: 320, height: 240 });
-    const target = { func: VideoDialogBoxSync, props };
 
-    const handleDeviceChange = (evt) => {
-        const id = evt.target.value;
-        if (onChoose) {
-            onChoose({
-                type: 'choose',
-                target,
-                id,
-            });
-        }
-    };
-
-    return (
-        <div className="overlay">
-            <div className="dialog-box video">
-                {renderTitle()}
-                {renderViewport()}
-                {renderControls()}
+    function render() {
+        show(
+            <div className="overlay">
+                <div className="dialog-box video">
+                    {renderTitle()}
+                    {renderViewport()}
+                    {renderControls()}
+                </div>
             </div>
-        </div>
-    );
+        );
+    }
 
     function renderTitle() {
         return (
             <div className="title">
                 Video Recorder
-                <i className="fa fa-window-close" onClick={onCancel} />
+                <i className="fa fa-window-close" onClick={handleCancel} />
             </div>
         );
     }
 
     function renderViewport() {
+        const { status, liveVideo } = capture;
         const classNames = [ 'video-viewport', status ];
+        const size = constrainSize(liveVideo, { width: 320, height: 240 });
         return (
             <div className={classNames.join(' ')} style={size}>
-                {renderVideo()}
+                {renderVideo(size)}
             </div>
         );
     }
 
-    function renderVideo() {
+    function renderVideo(size) {
+        const { status, liveVideo, capturedVideo, capturedImage } = capture;
         switch (status) {
             case 'acquiring':
                 return (
@@ -184,6 +151,7 @@ function VideoDialogBoxSync(props) {
     }
 
     function renderDeviceMenu() {
+        const { devices, chosenDeviceID } = capture;
         if (!devices || devices.length <= 1) {
             return <div className="devices" />;
         }
@@ -202,6 +170,7 @@ function VideoDialogBoxSync(props) {
     }
 
     function renderDuration() {
+        const { duration } = capture;
         if (duration === undefined) {
             return null;
         }
@@ -213,6 +182,7 @@ function VideoDialogBoxSync(props) {
     }
 
     function renderVolume() {
+        const { status, volume } = capture;
         if (volume === undefined || status === 'captured') {
             return <div className="volume" />;
         }
@@ -237,6 +207,7 @@ function VideoDialogBoxSync(props) {
     }
 
     function renderButtons() {
+        const { status } = capture;
         switch (status) {
             case 'acquiring':
             case 'denied':
@@ -244,40 +215,37 @@ function VideoDialogBoxSync(props) {
             case 'previewing':
                 return (
                     <div className="buttons">
-                        <button onClick={onCancel}>Cancel</button>
-                        <button onClick={onStart} disabled={status !== 'previewing'}>Start</button>
+                        <button onClick={handleCancel}>Cancel</button>
+                        <button onClick={handleStart} disabled={status !== 'previewing'}>Start</button>
                     </div>
                 );
             case 'capturing':
                 return (
                     <div className="buttons">
-                        <button onClick={onPause}>Pause</button>
-                        <button onClick={onStop}>Stop</button>
+                        <button onClick={handlePause}>Pause</button>
+                        <button onClick={handleStop}>Stop</button>
                     </div>
                 );
             case 'paused':
                 return (
                     <div className="buttons">
-                        <button onClick={onResume}>Resume</button>
-                        <button onClick={onStop}>Stop</button>
+                        <button onClick={handleResume}>Resume</button>
+                        <button onClick={handleStop}>Stop</button>
                     </div>
                 );
             case 'captured':
                 return (
                     <div className="buttons">
-                        <button onClick={onClear}>Retake</button>
-                        <button onClick={onAccept} disabled={status !== 'captured'}>Accept</button>
+                        <button onClick={handleClear}>Retake</button>
+                        <button onClick={handleAccept} disabled={status !== 'captured'}>Accept</button>
                     </div>
                 );
         }
     }
 }
 
-const asyncComponent = Relaks(VideoDialogBox);
-const syncComponent = VideoDialogBoxSync;
+const component = Relaks.memo(VideoDialogBox);
 
 export {
-    asyncComponent as default,
-    asyncComponent as VideoDialogBox,
-    syncComponent as VideoDialogBoxSync,
+    component as VideoDialogBox,
 };
