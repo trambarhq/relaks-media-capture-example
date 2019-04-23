@@ -63,6 +63,5 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 export {
-    FrontEnd as default,
     FrontEnd
 };

@@ -1,7 +1,7 @@
 import React, { useMemo, useEffect, useCallback } from 'react';
 import Relaks, { useProgress } from 'relaks';
 import RelaksMediaCapture from 'relaks-media-capture';
-import LiveVideo from 'live-video';
+import { LiveVideo } from 'live-video';
 import { constrainSize } from 'utils';
 
 async function VideoDialogBox(props) {

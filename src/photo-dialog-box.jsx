@@ -1,7 +1,7 @@
 import React, { useMemo, useEffect, useCallback } from 'react';
 import Relaks, { useProgress } from 'relaks';
 import RelaksMediaCapture from 'relaks-media-capture';
-import LiveVideo from 'live-video';
+import { LiveVideo } from 'live-video';
 import { constrainSize } from 'utils';
 
 async function PhotoDialogBox(props) {
@@ -86,7 +86,7 @@ async function PhotoDialogBox(props) {
     }
 
     function renderViewport() {
-        const { status, liveVideo } = capture; 
+        const { status, liveVideo } = capture;
         const classNames = [ 'video-viewport', status ];
         const size = constrainSize(liveVideo, { width: 320, height: 240 });
         return (

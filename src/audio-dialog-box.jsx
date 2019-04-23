@@ -1,7 +1,6 @@
 import React, { useMemo, useEffect, useCallback } from 'react';
 import Relaks, { useProgress } from 'relaks';
 import RelaksMediaCapture from 'relaks-media-capture';
-import LiveVideo from 'live-video';
 
 async function AudioDialogBox(props) {
     const { onClose, onCapture } = props;

@@ -18,7 +18,7 @@ function LiveVideo(props) {
             node.current.oncanplay = function(evt) {
                 evt.target.play();
             };
-            return () => {                
+            return () => {
                 node.current.src = '';
                 node.current.oncanplay = null;
                 URL.revokeObjectURL(url);
@@ -30,6 +30,5 @@ function LiveVideo(props) {
 }
 
 export {
-    LiveVideo as default,
     LiveVideo,
 };
