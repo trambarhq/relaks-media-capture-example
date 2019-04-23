@@ -14,14 +14,6 @@ async function AudioDialogBox(props) {
     }, []);
     const [ show ] = useProgress(50, 50);
 
-    useEffect(() => {
-        capture.activate();
-
-        return () => {
-            capture.deactivate();
-        };
-    }, [ capture ]);
-
     const handleStart = useCallback((evt) => {
         capture.start();
     });
@@ -58,6 +50,14 @@ async function AudioDialogBox(props) {
         capture.deactivate();
         handleCancel();
     });
+
+    useEffect(() => {
+        capture.activate();
+
+        return () => {
+            capture.deactivate();
+        };
+    }, []);
 
     do {
         render();

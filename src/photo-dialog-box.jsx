@@ -16,14 +16,6 @@ async function PhotoDialogBox(props) {
     }, []);
     const [ show ] = useProgress(50, 50);
 
-    useEffect(() => {
-        capture.activate();
-
-        return () => {
-            capture.deactivate();
-        };
-    }, [ capture ]);
-
     const handleSnap = useCallback((evt) => {
         capture.snap();
     });
@@ -52,6 +44,14 @@ async function PhotoDialogBox(props) {
         capture.deactivate();
         handleCancel();
     });
+
+    useEffect(() => {
+        capture.activate();
+
+        return () => {
+            capture.deactivate();
+        };
+    }, []);
 
     do {
         render();
