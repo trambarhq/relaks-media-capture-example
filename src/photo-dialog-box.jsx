@@ -15,7 +15,6 @@ async function PhotoDialogBox(props) {
         });
     }, []);
     const [ show ] = useProgress(50, 50);
-    const target = { func: PhotoDialogBox, props };
 
     useEffect(() => {
         capture.activate();
@@ -36,18 +35,13 @@ async function PhotoDialogBox(props) {
     });
     const handleCancel = useCallback((evt) => {
         if (onClose) {
-            onClose({
-                type: 'cancel',
-                target,
-            });
+            onClose({});
         }
     });
     const handleAccept = useCallback((evt) => {
         const { capturedImage } = capture;
         if (onCapture) {
             onCapture({
-                type: 'capture',
-                target,
                 image: {
                     blob: capturedImage.blob,
                     width: capturedImage.width,

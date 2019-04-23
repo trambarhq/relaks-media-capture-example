@@ -15,7 +15,6 @@ async function VideoDialogBox(props) {
         });
     }, []);
     const [ show ] = useProgress(50, 50);
-    const target = { func: VideoDialogBox, props };
 
     useEffect(() => {
         capture.activate();
@@ -46,18 +45,13 @@ async function VideoDialogBox(props) {
     });
     const handleCancel = useCallback((evt) => {
         if (onClose) {
-            onClose({
-                type: 'cancel',
-                target,
-            });
+            onClose({});
         }
     });
     const handleAccept = useCallback((evt) => {
         const { capturedVideo, capturedImage } = capture;
         if (onCapture) {
             onCapture({
-                type: 'capture',
-                target,
                 video: {
                     blob: capturedVideo.blob,
                     width: capturedVideo.width,
@@ -79,7 +73,6 @@ async function VideoDialogBox(props) {
         render();
         await capture.change();
     } while (capture.active);
-
 
     function render() {
         show(

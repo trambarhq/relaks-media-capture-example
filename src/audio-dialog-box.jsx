@@ -13,7 +13,6 @@ async function AudioDialogBox(props) {
         });
     }, []);
     const [ show ] = useProgress(50, 50);
-    const target = { func: AudioDialogBox, props };
 
     useEffect(() => {
         capture.activate();
@@ -43,18 +42,13 @@ async function AudioDialogBox(props) {
     });
     const handleCancel = useCallback((evt) => {
         if (onClose) {
-            onClose({
-                type: 'cancel',
-                target,
-            });
+            onClose({});
         }
     });
     const handleAccept = useCallback((evt) => {
         const { capturedAudio } = capture;
         if (onCapture) {
             onCapture({
-                type: 'capture',
-                target,
                 audio: {
                     blob: capturedAudio.blob,
                     duration: capturedAudio.duration,
