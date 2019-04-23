@@ -6,6 +6,7 @@ import { constrainSize } from 'utils';
 
 async function PhotoDialogBox(props) {
     const { onClose, onCapture } = props;
+    const [ show ] = useProgress();
     const capture = useMemo(() => {
         return new RelaksMediaCapture({
             video: true,
@@ -14,7 +15,6 @@ async function PhotoDialogBox(props) {
             captureImageOnly: true,
         });
     }, []);
-    const [ show ] = useProgress(50, 50);
 
     const handleSnap = useCallback((evt) => {
         capture.snap();

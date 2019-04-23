@@ -4,6 +4,7 @@ import RelaksMediaCapture from 'relaks-media-capture';
 
 async function AudioDialogBox(props) {
     const { onClose, onCapture } = props;
+    const [ show ] = useProgress();
     const capture = useMemo(() => {
         return new RelaksMediaCapture({
             video: false,
@@ -12,7 +13,6 @@ async function AudioDialogBox(props) {
             watchVolume: true,
         });
     }, []);
-    const [ show ] = useProgress(50, 50);
 
     const handleStart = useCallback((evt) => {
         capture.start();
