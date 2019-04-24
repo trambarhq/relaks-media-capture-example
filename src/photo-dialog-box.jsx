@@ -22,14 +22,6 @@ async function PhotoDialogBox(props) {
     const handleClear = useCallback((evt) => {
         capture.clear();
     });
-    const handleDeviceChange = useCallback((evt) => {
-        capture.choose(evt.target.value);
-    });
-    const handleCancel = useCallback((evt) => {
-        if (onClose) {
-            onClose({});
-        }
-    });
     const handleAccept = useCallback((evt) => {
         const { capturedImage } = capture;
         if (onCapture) {
@@ -44,10 +36,17 @@ async function PhotoDialogBox(props) {
         capture.deactivate();
         handleCancel();
     });
+    const handleCancel = useCallback((evt) => {
+        if (onClose) {
+            onClose({});
+        }
+    });
+    const handleDeviceChange = useCallback((evt) => {
+        capture.choose(evt.target.value);
+    });
 
     useEffect(() => {
         capture.activate();
-
         return () => {
             capture.deactivate();
         };

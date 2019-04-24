@@ -20,25 +20,17 @@ async function VideoDialogBox(props) {
         capture.start();
         capture.snap();
     });
-    const handleStop = useCallback((evt) => {
-        capture.stop();
-    });
     const handlePause = useCallback((evt) => {
         capture.pause();
     });
     const handleResume = useCallback((evt) => {
         capture.resume();
     });
+    const handleStop = useCallback((evt) => {
+        capture.stop();
+    });
     const handleClear = useCallback((evt) => {
         capture.clear();
-    });
-    const handleDeviceChange = useCallback((evt) => {
-        capture.choose(evt.target.value);
-    });
-    const handleCancel = useCallback((evt) => {
-        if (onClose) {
-            onClose({});
-        }
     });
     const handleAccept = useCallback((evt) => {
         const { capturedVideo, capturedImage } = capture;
@@ -59,6 +51,14 @@ async function VideoDialogBox(props) {
         }
         capture.deactivate();
         handleCancel();
+    });
+    const handleCancel = useCallback((evt) => {
+        if (onClose) {
+            onClose({});
+        }
+    });
+    const handleDeviceChange = useCallback((evt) => {
+        capture.choose(evt.target.value);
     });
 
     useEffect(() => {
