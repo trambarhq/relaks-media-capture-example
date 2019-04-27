@@ -1,7 +1,7 @@
 Relaks Media Capture Example
 ============================
 
-In [previous examples](https://github.com/trambarhq/relaks#examples), we had used [Relaks](https://github.com/trambarhq/relaks) to facilitate the retrieval of remote data. In this example we're going to do something different. We're going to build a component that captures video through a webcam. It's meant to demonstrate that Relaks can be used to solve a broad range of problems.
+In [previous examples](https://github.com/trambarhq/relaks#examples), we had used [Relaks](https://github.com/trambarhq/relaks) to retrieve remote data. In this example we're going to do something different. We're going to build a component that captures video through a webcam. It's meant to demonstrate that Relaks can be used to solve a broad range of problems.
 
 One way to think of Relaks is that it is React with time. Whereas a React component's render function produces a picture, a Relaks component's render function produces an animation, composed of multiple pictures appearing at different points in time. When we use Relaks to render a page progressively, we're really creating an animation that looks as follows:
 
@@ -26,7 +26,7 @@ This animation runs for a bit longer, naturally. It's also non-linear: The user 
 
 ## Live Demo
 
-You can see the example in action [here](https://trambar.io/examples/media-capture/). It's little more than two lists of buttons. Those in the first list bring up the synchronous part of the video dialog in various states, with video files used as stand-in for camera input. Those in the second list activate the fully functional asynchronous components, wired up to a real camera.
+You can see the example in action [here](https://trambar.io/examples/media-capture/). It's little more than a list of three buttons. Clicking on a button bring up a dialog box for capturing a video clip, an audio clip, or a photo.
 
 Note: `VideoDialogBox` and `AudioDialoBox` will not work in Safari or Edge due to the lack of support for media recording.
 
@@ -40,9 +40,9 @@ Run `npm run dev-https` if you wish to see the example in a phone or a tablet. N
 
 ## VideoDialogBox
 
-The source code `VideoDialogBox` ([video-dialog-box.jsx](https://github.com/trambarhq/relaks-media-capture-example/blob/master/src/video-dialog-box.jsx)) is organized like that of any functional React component. The top half of the function consists of set-up code that invokes various hooks. The bottom half consists of UI rendering code. `VideoDialogBox` is a Relaks component so it's declared as async. Asynchronous operations are performed in the middle of the function--after hook invocations and before UI code.
+The source code of `VideoDialogBox` ([video-dialog-box.jsx](https://github.com/trambarhq/relaks-media-capture-example/blob/master/src/video-dialog-box.jsx)) is organized like that of any functional React component. The top half of the function consists of set-up code that invokes various hooks. The bottom half consists of UI rendering code. `VideoDialogBox` is a Relaks component so it's declared as async. Asynchronous operations are performed in the middle of the function--after hook invocations and before UI code.
 
-In addition to the [usual rules concerning hook usage](https://reactjs.org/docs/hooks-rules.html), Relaks requires that all hooks to be called prior to the first use of the `await` operator.
+In addition to the [usual rules concerning hook usage](https://reactjs.org/docs/hooks-rules.html), Relaks requires that all hooks to be called prior to the first call to the `show()`.
 
 The component's full source code is listed below. We'll break it down section by section further down the page. Just skim through it.
 
@@ -298,7 +298,7 @@ As usual, the first thing we do is copying the component's props into local vari
     const { onClose, onCapture } = props;
 ```
 
-There are just two: a callback to close the dialog box and another for returning the results.
+There are just two: a callback to close the dialog box and another for returning the result.
 
 Next, we obtain the `show()` function from `useProgress`:
 
@@ -415,7 +415,7 @@ The last hook we invoke is `useEffect`. We use it to initiate the media capture 
     }, []);
 ```
 
-Now we've reached the part of function where asynchronous operations take place. The code surprisingly simple:
+Now we've reached the part of function where asynchronous operations take place. The code is surprisingly simple:
 
 ```javascript
     do {
@@ -428,7 +428,7 @@ Basically, we wait for our media capture object to experience a change. When tha
 
 At first glance the loop above might seem disconcerting. It seems like a newbie mistake to wait for change to occur in a loop. Due to JavaScript's single-threaded nature, such a loop would cause the browser to lock up in synchronous code. We're dealing with asynchronous code here, however. The loop is perfectly okay. Code execution will jump to somewhere else while we wait for a change.
 
-The usefulness of the loop would be more apparent if we imagine that other actions will take place after we've captured the video. Suppose we want to upload the video to the server. We would handle that in the following manner:
+The usefulness of the loop would be more apparent if we imagine that other actions will occur after we've captured the video. Suppose we want to upload the video to the server. We would handle that in the following manner:
 
 ```javascript
     do {
@@ -501,7 +501,7 @@ Anyway, let us get back to the actual code of our example. All that's left is th
     }
 ```
 
-`renderViewport()` is responsible for the component's main contents. It draws a container `div` and calls another method to render the video itself:
+`renderViewport()` is responsible for the component's main contents. It draws a container `div` and calls another function to render the video itself:
 
 ```javascript
     function renderViewport() {
@@ -547,7 +547,7 @@ What `renderVideo()` produces depends on the current status of the media capture
     }
 ```
 
-The capturing process begins with a status of `acquiring`, when we ask the browser for permission to use the camera. If the user choose not to grant permission, the status changes to `denied`. Otherwise the status becomes `initiating`, which last only a brief moment before it changes to `previewing`. At this point the video stream is available and we can show the user what the camera is seeing.
+The capturing process begins with a status of `acquiring`, when we ask the browser for permission to use the camera. If the user choose not to grant permission, the status changes to `denied`. Otherwise the status becomes `initiating`, which lasts only a brief moment before it changes to `previewing`. At this point the video stream is available and we can show the user what the camera is seeing.
 
 When the user clicks the **Start** button, the status changes to `capturing`. If the user clicks the **Pause** button at some point, the status would change to `paused`. A click on **Resume** would change it back to `capturing`.
 
@@ -555,7 +555,7 @@ When the user finally clicks the **Stop** button, the status becomes `captured`.
 
 The `liveVideo` property of `capture` holds a [`MediaStream`](https://developer.mozilla.org/en-US/docs/Web/API/MediaStream) object. It represents the live input from the camera. When attached to a `<video />` as its [`srcObject`](https://developer.mozilla.org/en-US/docs/Web/API/HTMLMediaElement/srcObject), the element will show the video feed. `liveVideo` will change when the user select a different camera. It could also change when the user rotate the device.
 
-`capturedVideo` and `capturedImage` are the end results of the media capturing operation. The latter is used as a video element's "poster."
+`capturedVideo` and `capturedImage` are the end results of the capturing operation. The latter is used as a video element's "poster."
 
 The `LiveVideo` component ([`live-video.jsx`](https://github.com/chung-leong/relaks-media-capture-example/blob/master/src/live-video.jsx)) doesn't do anything aside from rendering a `video` element. It's a workaround for React's inability to set an element's `srcObject` via prop.
 
@@ -598,7 +598,7 @@ On the left side of the dialog box we have either the duration or device selecti
     }
 ```
 
-The list of devices can change when the user plug in a new device.
+The list of devices can change when the user plugs in a new device.
 
 `renderDuration()` meanwhile uses `duration`, the video length in millisecond.
 
@@ -699,6 +699,8 @@ export {
     component as VideoDialogBox,
 };
 ```
+
+That's it!
 
 ## Taking Photo
 
