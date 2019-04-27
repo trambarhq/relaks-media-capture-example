@@ -26,7 +26,7 @@ module.exports = {
                 exclude: /node_modules/,
                 query: {
                     presets: [
-                        'env',
+                        [ 'env', { modules: false }],
                         'react',
                         'stage-0',
                     ],
@@ -62,6 +62,9 @@ module.exports = {
             reportFilename: `report.html`,
         }),
     ],
+    optimization: {
+        concatenateModules: false,
+    },
     devtool: (event === 'build') ? 'source-map' : 'inline-source-map',
     devServer: {
         inline: true,

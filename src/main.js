@@ -1,11 +1,11 @@
-import React, { createElement } from 'react';
+import { createElement } from 'react';
 import { render } from 'react-dom';
 import { FrontEnd } from 'front-end';
 
 window.addEventListener('load', initialize);
 
 function initialize(evt) {
-    let container = document.getElementById('react-container');
-    let element = createElement(FrontEnd, {});
+    const container = document.getElementById('react-container');
+    const element = createElement(FrontEnd, {});
     render(element, container);
 }

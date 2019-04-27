@@ -1,12 +1,12 @@
 {
   "name": "relaks-media-capture-example",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "An example of using Relaks to capture photo and video",
   "scripts": {
     "watch": "webpack --watch",
     "build": "webpack",
-    "start": "webpack-dev-server && exit 0",
-    "start-https": "webpack-dev-server --host 0.0.0.0 --https && exit 0",
+    "dev": "webpack-dev-server && exit 0",
+    "dev-https": "webpack-dev-server --host 0.0.0.0 --https && exit 0",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -29,19 +29,19 @@
     "css-loader": "^2.1.1",
     "file-loader": "^3.0.1",
     "html-webpack-plugin": "^3.2.0",
-    "node-sass": "^4.11.0",
+    "node-sass": "^4.12.0",
     "prop-types": "^15.7.2",
-    "react": "^16.8.4",
-    "react-dom": "^16.8.4",
-    "regenerator-runtime": "^0.13.1",
-    "relaks": "^1.1.9",
+    "react": "^16.8.6",
+    "react-dom": "^16.8.6",
+    "regenerator-runtime": "^0.13.2",
+    "relaks": "^2.0.0",
     "relaks-media-capture": "0.0.2",
     "sass-loader": "^7.1.0",
     "style-loader": "^0.23.1",
     "uglifyjs-webpack-plugin": "^2.1.2",
-    "webpack": "^4.29.6",
-    "webpack-bundle-analyzer": "^3.1.0",
-    "webpack-dev-server": "^3.2.1"
-  },
-  "dependencies": {}
+    "webpack": "^4.30.0",
+    "webpack-bundle-analyzer": "^3.3.2",
+    "webpack-cli": "^3.3.1",
+    "webpack-dev-server": "^3.3.1"
+  }
 }

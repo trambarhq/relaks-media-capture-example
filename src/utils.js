@@ -1,4 +1,4 @@
-function useSizeConstraint(liveVideo, defDimensions) {
+function constrainSize(liveVideo, defDimensions) {
     let { width, height } = defDimensions;
     if (liveVideo) {
         const html = document.body.parentNode;
@@ -20,5 +20,5 @@ function useSizeConstraint(liveVideo, defDimensions) {
 }
 
 export {
-    useSizeConstraint,
+    constrainSize,
 };

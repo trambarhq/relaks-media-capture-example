@@ -1,155 +1,102 @@
-import React, { PureComponent } from 'react';
-import { AsyncComponent } from 'relaks';
+import React, { useMemo, useEffect, useCallback } from 'react';
+import Relaks, { useProgress } from 'relaks';
 import RelaksMediaCapture from 'relaks-media-capture';
 
-class AudioDialogBox extends AsyncComponent {
-    static displayName = 'AudioDialogBoxAsync';
-
-    constructor(props) {
-        super(props);
-        let options = {
+async function AudioDialogBox(props) {
+    const { onClose, onCapture } = props;
+    const [ show ] = useProgress();
+    const capture = useMemo(() => {
+        return new RelaksMediaCapture({
             video: false,
             audio: true,
             preferredDevice: 'front',
             watchVolume: true,
-        };
-        this.capture = new RelaksMediaCapture(options);
-    }
+        });
+    }, []);
 
-    async renderAsync(meanwhile) {
-        meanwhile.delay(50, 50);
-        let props = {
-            onStart: this.handleStart,
-            onStop: this.handleStop,
-            onPause: this.handlePause,
-            onResume: this.handleResume,
-            onClear: this.handleClear,
-            onChoose: this.handleChoose,
-            onAccept: this.handleAccept,
-            onCancel: this.handleCancel,
-        };
-        this.capture.activate();
-        do {
-            props.status = this.capture.status;
-            props.devices = this.capture.devices;
-            props.chosenDeviceID = this.capture.chosenDeviceID;
-            props.duration = this.capture.duration;
-            props.volume = this.capture.volume;
-            props.capturedAudio = this.capture.capturedAudio;
-            meanwhile.show(<AudioDialogBoxSync {...props} />);
-            await this.capture.change();
-        } while (this.capture.active);
-        return <AudioDialogBoxSync {...props} />;
-    }
-
-    componentWillUnmount() {
-        super.componentWillUnmount();
-        this.capture.deactivate();
-    }
-
-    handleStart = (evt) => {
-        this.capture.start();
-    }
-
-    handleStop = (evt) => {
-        this.capture.stop();
-    }
-
-    handlePause = (evt) => {
-        this.capture.pause();
-    }
-
-    handleResume = (evt) => {
-        this.capture.resume();
-    }
-
-    handleClear = (evt) => {
-        this.capture.clear();
-    }
-
-    handleChoose = (evt) => {
-        this.capture.choose(evt.id);
-    }
-
-    handleCancel = (evt) => {
-        let { onClose } = this.props;
-        if (onClose) {
-            onClose({
-                type: 'cancel',
-                target: this,
-            })
-        }
-    }
-
-    handleAccept = (evt) => {
-        let { onCapture } = this.props;
-        let { capturedAudio } = this.capture;
+    const handleStart = useCallback((evt) => {
+        capture.start();
+    });
+    const handlePause = useCallback((evt) => {
+        capture.pause();
+    });
+    const handleResume = useCallback((evt) => {
+        capture.resume();
+    });
+    const handleStop = useCallback((evt) => {
+        capture.stop();
+    });
+    const handleClear = useCallback((evt) => {
+        capture.clear();
+    });
+    const handleAccept = useCallback((evt) => {
+        const { capturedAudio } = capture;
         if (onCapture) {
-            let evt = {
-                type: 'capture',
-                target: this,
+            onCapture({
                 audio: {
                     blob: capturedAudio.blob,
                     duration: capturedAudio.duration,
                 },
-            };
-            onCapture(evt);
+            });
         }
-        this.capture.deactivate();
-        this.handleCancel();
-    }
-}
+        capture.deactivate();
+        handleCancel();
+    });
+    const handleCancel = useCallback((evt) => {
+        if (onClose) {
+            onClose({});
+        }
+    });
+    const handleDeviceChange = useCallback((evt) => {
+        capture.choose(evt.target.value);
+    });
 
-class AudioDialogBoxSync extends PureComponent {
-    static displayName = 'AudioDialogBoxSync';
-
-    constructor(props) {
-        super(props);
-        this.state = {
-            viewportWidth: 640,
-            viewportHeight: 240,
+    useEffect(() => {
+        capture.activate();
+        return () => {
+            capture.deactivate();
         };
-    }
+    }, []);
 
-    render() {
-        return (
+    do {
+        render();
+        await capture.change();
+    } while (capture.active);
+
+    function render() {
+        show(
             <div className="overlay">
                 <div className="dialog-box video">
-                    {this.renderTitle()}
-                    {this.renderViewport()}
-                    {this.renderControls()}
+                    {renderTitle()}
+                    {renderViewport()}
+                    {renderControls()}
                 </div>
             </div>
         );
     }
 
-    renderTitle() {
-        let { onCancel } = this.props;
+    function renderTitle() {
         return (
             <div className="title">
                 Audio Recorder
-                <i className="fa fa-window-close" onClick={onCancel} />
+                <i className="fa fa-window-close" onClick={handleCancel} />
             </div>
         );
     }
 
-    renderViewport() {
-        let { status } = this.props;
-        let { viewportWidth, viewportHeight } = this.state;
-        let style = {
-            width: viewportWidth,
-            height: viewportHeight,
-        };
-        let className = `video-viewport ${status}`;
+    function renderViewport() {
+        const { status } = capture;
+        const classNames = [ 'video-viewport', status ];
+        const size = { width: 640, height: 240 };
         return (
-            <div className={className} style={style}>
-                {this.renderVideo()}
+            <div className={classNames.join(' ')} style={size}>
+                {renderAudio()}
             </div>
         );
     }
 
-    renderVideo() {
-        let { status, capturedAudio } = this.props;
+    function renderAudio() {
+        const { status, capturedAudio } = capture;
         switch (status) {
             case 'acquiring':
             case 'initiating':
@@ -173,74 +120,74 @@ class AudioDialogBoxSync extends PureComponent {
         }
     }
 
-    renderControls() {
+    function renderControls() {
         return (
             <div className="controls">
-                {this.renderDuration() || this.renderDeviceMenu()}
-                {this.renderVolume()}
-                {this.renderButtons()}
+                {renderDuration() || renderDeviceMenu()}
+                {renderVolume()}
+                {renderButtons()}
             </div>
         )
     }
 
-    renderDeviceMenu() {
-        let { devices, chosenDeviceID, duration } = this.props;
+    function renderDeviceMenu() {
+        const { devices, chosenDeviceID } = capture;
         if (!devices || devices.length <= 1) {
             return <div className="devices" />;
         }
         return (
             <div className="devices">
-                <select onChange={this.handleDeviceChange} value={chosenDeviceID}>
-                {
-                    devices.map((device, i) => {
-                        let label = device.label.replace(/\([0-9a-f]{4}:[0-9a-f]{4}\)/, '');
-                        return <option value={device.id} key={i}>{label}</option>;
-                    })
-                }
+                <select onChange={handleDeviceChange} value={chosenDeviceID}>
+                    {devices.map(renderDeviceMenuOption)}
                 </select>
             </div>
         );
     }
 
-    renderDuration() {
-        let { duration } = this.props;
+    function renderDeviceMenuOption(device, i) {
+        const label = device.label.replace(/\([0-9a-f]{4}:[0-9a-f]{4}\)/, '');
+        return <option value={device.id} key={i}>{label}</option>;
+    }
+
+    function renderDuration() {
+        const { duration } = capture;
         if (duration === undefined) {
             return null;
         }
-        let seconds = duration / 1000;
-        let hh = Math.floor(seconds / 3600).toString().padStart(2, '0');
-        let mm = Math.floor(seconds / 60 % 60).toString().padStart(2, '0');
-        let ss = Math.floor(seconds % 60).toString().padStart(2, '0');
+        const seconds = duration / 1000;
+        const hh = Math.floor(seconds / 3600).toString().padStart(2, '0');
+        const mm = Math.floor(seconds / 60 % 60).toString().padStart(2, '0');
+        const ss = Math.floor(seconds % 60).toString().padStart(2, '0');
         return <div className="duration">{`${hh}:${mm}:${ss}`}</div>
     }
 
-    renderVolume() {
-        let { status, volume } = this.props;
+    function renderVolume() {
+        const { status, volume } = capture;
         if (volume === undefined || status === 'captured') {
             return <div className="volume" />;
         }
-        let iconClassName = 'fa';
+        const iconClassNames = [ 'fa' ];
         if (volume > 40) {
-            iconClassName += ' fa-volume-up';
+            iconClassNames.push('fa-volume-up');
         } else if (volume > 10) {
-            iconClassName += ' fa-volume-down';
+            iconClassNames.push('fa-volume-down');
         } else {
-            iconClassName += ' fa-volume-off';
+            iconClassNames.push('fa-volume-off');
         }
-        let barClassName = `volume-bar ${status}`;
+        const barClassNames = [ 'volume-bar', status ];
+        const barStyle = { width: volume + '%' };
         return (
             <div className="volume">
-                <i className={iconClassName} />
+                <i className={iconClassNames.join(' ')} />
                 <div className="volume-bar-frame">
-                    <div className={barClassName} style={{ width: volume + '%' }} />
+                    <div className={barClassNames.join(' ')} style={barStyle} />
                 </div>
             </div>
         );
     }
 
-    renderButtons() {
-        let { status } = this.props;
-        let { onCancel, onStart, onPause, onResume, onStop, onClear, onAccept } = this.props;
+    function renderButtons() {
+        const { status } = capture;
         switch (status) {
             case 'acquiring':
             case 'denied':
@@ -248,89 +195,37 @@ class AudioDialogBoxSync extends PureComponent {
             case 'previewing':
                 return (
                     <div className="buttons">
-                        <button onClick={onCancel}>Cancel</button>
-                        <button onClick={onStart} disabled={status !== 'previewing'}>Start</button>
+                        <button onClick={handleCancel}>Cancel</button>
+                        <button onClick={handleStart} disabled={status !== 'previewing'}>Start</button>
                     </div>
                 );
             case 'capturing':
                 return (
                     <div className="buttons">
-                        <button onClick={onPause}>Pause</button>
-                        <button onClick={onStop}>Stop</button>
+                        <button onClick={handlePause}>Pause</button>
+                        <button onClick={handleStop}>Stop</button>
                     </div>
                 );
             case 'paused':
                 return (
                     <div className="buttons">
-                        <button onClick={onResume}>Resume</button>
-                        <button onClick={onStop}>Stop</button>
+                        <button onClick={handleResume}>Resume</button>
+                        <button onClick={handleStop}>Stop</button>
                     </div>
                 );
             case 'captured':
                 return (
                     <div className="buttons">
-                        <button onClick={onClear}>Retake</button>
-                        <button onClick={onAccept} disabled={status !== 'captured'}>Accept</button>
+                        <button onClick={handleClear}>Retake</button>
+                        <button onClick={handleAccept} disabled={status !== 'captured'}>Accept</button>
                     </div>
                 );
         }
     }
-
-    handleDeviceChange = (evt) => {
-        let { onChoose } = this.props;
-        let id = evt.target.value;
-        if (onChoose) {
-            onChoose({
-                type: 'choose',
-                target: this,
-                id,
-            });
-        }
-    }
 }
 
-if (process.env.NODE_ENV !== 'production') {
-    const PropTypes = require('prop-types');
-    AudioDialogBox.propTypes = {
-        onClose: PropTypes.func,
-        onCapture: PropTypes.func,
-    };
-
-    AudioDialogBoxSync.propTypes = {
-        status: PropTypes.oneOf([
-            'acquiring',
-            'denied',
-            'initiating',
-            'previewing',
-            'capturing',
-            'paused',
-            'captured',
-        ]),
-        capturedAudio: PropTypes.shape({
-            url: PropTypes.string.isRequired,
-            blob: PropTypes.instanceOf(Blob).isRequired,
-        }),
-        volume: PropTypes.number,
-        duration: PropTypes.number,
-        devices: PropTypes.arrayOf(PropTypes.shape({
-            id: PropTypes.string,
-            label: PropTypes.string,
-        })),
-        chosenDeviceID: PropTypes.string,
-
-        onChoose: PropTypes.func,
-        onCancel: PropTypes.func,
-        onStart: PropTypes.func,
-        onStop: PropTypes.func,
-        onPause: PropTypes.func,
-        onResume: PropTypes.func,
-        onClear: PropTypes.func,
-        onAccept: PropTypes.func,
-    };
-}
+const component = Relaks.memo(AudioDialogBox);
 
 export {
-    AudioDialogBox as default,
-    AudioDialogBox,
-    AudioDialogBoxSync,
+    component as AudioDialogBox,
 };
