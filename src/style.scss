@@ -1,133 +1,133 @@
 * {
-    box-sizing: border-box;
+  box-sizing: border-box;
 }
 
 .list {
-    margin-bottom: 4em;
+  margin-bottom: 4em;
 
-    LI {
-        margin-top: 0.5em;
-        margin-bottom: 0.5em;
-    }
+  LI {
+    margin-top: 0.5em;
+    margin-bottom: 0.5em;
+  }
 }
 
 .overlay {
-    position: fixed;
-    display: flex;
-    left: 0;
-    right: 0;
-    top: 0;
-    bottom: 0;
-    background-color: rgba(0, 0, 0, 0.50);
+  position: fixed;
+  display: flex;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.50);
 
-    align-items: center;
-    justify-content: center;
-    pointer-events: none;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
 }
 
 .dialog-box {
+  border: 1px solid black;
+  background-color: lightgrey;
+  padding: 0.5em 0.5em 0.5em 0.5em;
+  pointer-events: all;
+
+  .title {
+    font-weight: bold;
+    padding-bottom: 2px;
+
+    .fa-window-close {
+      font-size: 1.1em;
+      line-height: 100%;
+      float: right;
+      cursor: pointer;
+    }
+  }
+
+  .video-viewport {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
     border: 1px solid black;
-    background-color: lightgrey;
-    padding: 0.5em 0.5em 0.5em 0.5em;
-    pointer-events: all;
+    box-sizing: content-box;
+    background-color: black;
+    transition: width 0.25s, height 0.25s;
 
-    .title {
-        font-weight: bold;
-        padding-bottom: 2px;
-
-        .fa-window-close {
-            font-size: 1.1em;
-            line-height: 100%;
-            float: right;
-            cursor: pointer;
-        }
+    VIDEO {
+      transition: opacity 0.25s;
+      opacity: 1;
     }
 
-    .video-viewport {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        overflow: hidden;
+    .fa-stack {
+      font-size: 6em;
+      color: lightgray;
+
+      .fa-ban {
+        color: red;
+      }
+    }
+
+    &.initiating {
+      VIDEO {
+        opacity: 0;
+      }
+    }
+  }
+
+  .controls {
+    display: flex;
+    padding-top: 0.5em;
+
+    .devices {
+      flex: 1 1 8em;
+      text-align: left;
+
+      SELECT {
+        padding: 1px 3px 1px 3px;
+      }
+    }
+
+    .duration {
+      flex: 1 1 8em;
+      text-align: left;
+      padding: 3px 2px 0px 2px;
+    }
+
+    .volume {
+      flex: 1 1 auto;
+      text-align: center;
+
+      .fa {
+        display: inline-block;
+        width: 1.25em;
+        vertical-align: middle;
+        text-align: left;
+      }
+
+      .volume-bar-frame {
+        display: inline-block;
         border: 1px solid black;
-        box-sizing: content-box;
-        background-color: black;
-        transition: width 0.25s, height 0.25s;
+        width: 5em;
+        vertical-align: middle;
 
-        VIDEO {
-            transition: opacity 0.25s;
-            opacity: 1;
+        .volume-bar {
+          height: 0.5em;
+          background-color: gray;
+
+          &.capturing {
+            background-color: green;
+          }
         }
-
-        .fa-stack {
-            font-size: 6em;
-            color: lightgray;
-
-            .fa-ban {
-                color: red;
-            }
-        }
-
-        &.initiating {
-            VIDEO {
-                opacity: 0;
-            }
-        }
+      }
     }
 
-    .controls {
-        display: flex;
-        padding-top: 0.5em;
+    .buttons {
+      flex: 1 1 8em;
+      text-align: right;
 
-        .devices {
-            flex: 1 1 8em;
-            text-align: left;
-
-            SELECT {
-                padding: 1px 3px 1px 3px;
-            }
-        }
-
-        .duration {
-            flex: 1 1 8em;
-            text-align: left;
-            padding: 3px 2px 0px 2px;
-        }
-
-        .volume {
-            flex: 1 1 auto;
-            text-align: center;
-
-            .fa {
-                display: inline-block;
-                width: 1.25em;
-                vertical-align: middle;
-                text-align: left;
-            }
-
-            .volume-bar-frame {
-                display: inline-block;
-                border: 1px solid black;
-                width: 5em;
-                vertical-align: middle;
-
-                .volume-bar {
-                    height: 0.5em;
-                    background-color: gray;
-
-                    &.capturing {
-                        background-color: green;
-                    }
-                }
-            }
-        }
-
-        .buttons {
-            flex: 1 1 8em;
-            text-align: right;
-
-            BUTTON {
-                margin-left: 0.2em;
-            }
-        }
+      BUTTON {
+        margin-left: 0.2em;
+      }
     }
+  }
 }
