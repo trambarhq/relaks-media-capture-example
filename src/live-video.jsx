@@ -1,6 +1,6 @@
 import React, { useRef, useEffect } from 'react';
 
-function LiveVideo(props) {
+export function LiveVideo(props) {
   const { srcObject, ...vprops } = props;
   const node = useRef();
 
@@ -28,7 +28,3 @@ function LiveVideo(props) {
 
   return <video ref={node} {...vprops} />;
 }
-
-export {
-  LiveVideo,
-};

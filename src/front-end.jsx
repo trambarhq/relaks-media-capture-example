@@ -5,7 +5,7 @@ import { PhotoDialogBox } from './photo-dialog-box.jsx';
 import { AudioDialogBox } from './audio-dialog-box.jsx';
 import './style.scss';
 
-function FrontEnd(props) {
+export function FrontEnd(props) {
   const [ selection, setSelection ] = useState(null);
 
   const handleButtonClick = useListener((evt) => {
@@ -62,7 +62,3 @@ function FrontEnd(props) {
 if (process.env.NODE_ENV !== 'production') {
   require('./props.js');
 }
-
-export {
-  FrontEnd
-};

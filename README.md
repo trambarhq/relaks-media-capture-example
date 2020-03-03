@@ -48,12 +48,12 @@ The component's full source code is listed below. We'll break it down section by
 
 ```javascript
 import React, { useMemo, useEffect, useCallback } from 'react';
-import Relaks, { useProgress } from 'relaks';
+import { useProgress } from 'relaks';
 import { MediaCapture } from 'relaks-media-capture';
 import { LiveVideo } from 'live-video';
 import { constrainSize } from 'utils';
 
-async function VideoDialogBox(props) {
+export async function VideoDialogBox(props) {
   const { onClose, onCapture } = props;
   const [ show ] = useProgress();
   const capture = useMemo(() => {
@@ -284,12 +284,6 @@ async function VideoDialogBox(props) {
     }
   }
 }
-
-const component = Relaks.memo(VideoDialogBox);
-
-export {
-  component as VideoDialogBox,
-};
 ```
 
 As usual, the first thing we do is copying the component's props into local variables:
@@ -688,16 +682,6 @@ What buttons are shown depends on the current status:
         );
     }
   }
-```
-
-At the very end, we call `Relaks.memo()` to convert our async function into a regular React component and export it:
-
-```javascript
-const component = Relaks.memo(VideoDialogBox);
-
-export {
-  component as VideoDialogBox,
-};
 ```
 
 That's it!

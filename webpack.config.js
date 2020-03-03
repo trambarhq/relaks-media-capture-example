@@ -25,6 +25,7 @@ module.exports = {
           ],
           plugins: [
             '@babel/transform-runtime',
+            'relaks/transform-memo',
           ]
         }
       },

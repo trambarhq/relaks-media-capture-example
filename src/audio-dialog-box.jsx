@@ -1,8 +1,8 @@
 import React, { useMemo, useEffect } from 'react';
-import Relaks, { useProgress, useListener } from 'relaks';
+import { useProgress, useListener } from 'relaks';
 import { MediaCapture } from 'relaks-media-capture';
 
-async function AudioDialogBox(props) {
+export async function AudioDialogBox(props) {
   const { onClose, onCapture } = props;
   const [ show ] = useProgress();
   const capture = useMemo(() => {
@@ -223,9 +223,3 @@ async function AudioDialogBox(props) {
     }
   }
 }
-
-const component = Relaks.memo(AudioDialogBox);
-
-export {
-  component as AudioDialogBox,
-};

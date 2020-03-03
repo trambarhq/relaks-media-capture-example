@@ -1,10 +1,10 @@
 import React, { useMemo, useEffect } from 'react';
-import Relaks, { useProgress, useListener } from 'relaks';
+import { useProgress, useListener } from 'relaks';
 import { MediaCapture } from 'relaks-media-capture';
 import { constrainSize } from './utils.js';
 import { LiveVideo } from './live-video.jsx';
 
-async function PhotoDialogBox(props) {
+export async function PhotoDialogBox(props) {
   const { onClose, onCapture } = props;
   const [ show ] = useProgress();
   const capture = useMemo(() => {
@@ -167,9 +167,3 @@ async function PhotoDialogBox(props) {
     }
   }
 }
-
-const component = Relaks.memo(PhotoDialogBox);
-
-export {
-  component as PhotoDialogBox,
-};
